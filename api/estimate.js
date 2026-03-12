@@ -10,12 +10,13 @@ const corsHeaders = {
 };
 
 // Pricing configuration
+// NOTE: Base prices do NOT include glass or top-tier fixtures
 const PRICING = {
-  // Base prices by project type and quality
+  // Base prices by project type (low fixtures, no glass)
   base: {
-    'tub-to-shower': { low: 12000, mid: 15000, high: 18000 },
-    'full-bathroom': { low: 15000, mid: 25000, high: 30000 },
-    'cosmetic': { low: 4000, mid: 6000, high: 8000 }
+    'tub-to-shower': 7500,           // Low fixtures, no glass
+    'full-bathroom': 12000,          // Low fixtures, no glass
+    'cosmetic': 4000                 // Low fixtures, no glass
   },
   
   // Condition adjustments
@@ -33,11 +34,11 @@ const PRICING = {
     'other': 20
   },
   
-  // Fixture quality additions
+  // Fixture quality additions (ONLY for mid/high, low is included in base)
   fixtures: {
     'low': 0,
-    'mid': 700,
-    'high': 2000
+    'mid': 500,
+    'high': 1200
   },
   
   // Glass enclosure costs
@@ -49,7 +50,7 @@ const PRICING = {
   // Plumbing work costs
   plumbing: {
     'keep': 0,
-    'minor': 1000,
+    'minor': 500,
     'major': 3500
   }
 };
@@ -58,9 +59,8 @@ const PRICING = {
 function calculateBaseEstimate(data) {
   const { projectType, condition, flooring, fixtureQuality, plumbing, glass, squareFootage } = data;
   
-  // Get base price for project type and quality
-  const baseRange = PRICING.base[projectType] || PRICING.base['tub-to-shower'];
-  let basePrice = baseRange[fixtureQuality] || baseRange.mid;
+  // Start with base price for project type (low fixtures, no glass included)
+  let basePrice = PRICING.base[projectType] || PRICING.base['tub-to-shower'];
   
   // Size scaling factor
   let sizeFactor = 1;
@@ -76,7 +76,7 @@ function calculateBaseEstimate(data) {
   
   basePrice = Math.round(basePrice * sizeFactor);
   
-  // Calculate individual costs
+  // Calculate individual costs (additive)
   const conditionCost = PRICING.condition[condition] || 0;
   const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * squareFootage);
   const fixtureCost = PRICING.fixtures[fixtureQuality] || 0;
@@ -93,7 +93,11 @@ function calculateBaseEstimate(data) {
   
   const total = breakdown.basePrice + breakdown.flooring + breakdown.fixtures + breakdown.glass + breakdown.plumbing;
   
-  return { total, breakdown };
+  // Return with 20% margin for estimate range
+  const lowEstimate = Math.round(total * 0.95);
+  const highEstimate = Math.round(total * 1.15);
+  
+  return { lowEstimate, highEstimate, breakdown };
 }
 
 // Analyze bathroom image with Claude Vision
@@ -238,24 +242,23 @@ export default async function handler(req, res) {
     }
     
     // Calculate base estimate
-    let { total, breakdown } = calculateBaseEstimate(data);
+    let { lowEstimate, highEstimate, breakdown } = calculateBaseEstimate(data);
     
     // AI image analysis (if image provided)
     let imageAnalysis = null;
-    let aiAdjustment = 0;
     
     if (data.image && process.env.ANTHROPIC_API_KEY) {
       const analysis = await analyzeImage(data.image, data);
       
       if (analysis) {
         imageAnalysis = analysis.summary;
-        aiAdjustment = analysis.priceAdjustment || 0;
+        const aiAdjustment = analysis.priceAdjustment || 0;
         
-        // Apply AI price adjustment
+        // Apply AI price adjustment to both estimates
         if (aiAdjustment !== 0) {
           const adjustmentFactor = 1 + (aiAdjustment / 100);
-          total = Math.round(total * adjustmentFactor);
-          breakdown.basePrice = Math.round(breakdown.basePrice * adjustmentFactor);
+          lowEstimate = Math.round(lowEstimate * adjustmentFactor);
+          highEstimate = Math.round(highEstimate * adjustmentFactor);
         }
         
         // If AI estimates different square footage, note it in the analysis
@@ -265,9 +268,9 @@ export default async function handler(req, res) {
       }
     }
     
-    // Calculate final range
-    const lowEstimate = Math.round(total / 500) * 500;
-    const highEstimate = Math.round(total * 1.2 / 500) * 500;
+    // Round to nearest $500 for cleaner presentation
+    lowEstimate = Math.round(lowEstimate / 500) * 500;
+    highEstimate = Math.round(highEstimate / 500) * 500;
     
     // Calculate discount deadline (7 days from now)
     const discountDeadline = new Date();
@@ -284,11 +287,10 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString()
     });
     
-    // Return estimate
+    // Return estimate (breakdown NOT sent to customer, only internal logging)
     return res.status(200).json({
       lowEstimate,
       highEstimate,
-      breakdown,
       imageAnalysis,
       discountDeadline: discountDeadline.toISOString(),
       discountAmount: 1500
