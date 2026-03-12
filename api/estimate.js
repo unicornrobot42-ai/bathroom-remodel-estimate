@@ -615,3 +615,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to calculate estimate' });
   }
 }
+// Force redeploy Thu Mar 12 16:51:03 PDT 2026
