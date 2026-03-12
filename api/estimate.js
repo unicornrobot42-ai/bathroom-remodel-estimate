@@ -9,31 +9,37 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-// Pricing configuration - Based on Justin's actual pricing
-// TUB-TO-SHOWER: Base $5,414 (labor, demo, plumbing, hot mop, finish work)
+// Pricing configuration - Based on Justin's actual project budgets
 const PRICING = {
-  // Base cost (labor + demo + plumbing + hot mop + finishing)
+  // Base cost by project type
   base: {
     'tub-to-shower': 5414,           // Labor + demo + plumbing + hot mop + finish
-    'full-bathroom': 12000,          // (To be filled in from budget)
-    'cosmetic': 4000                 // (To be filled in from budget)
+    'full-bathroom': 8000,           // Labor + demo + materials (MID tier baseline)
+    'cosmetic': 8000                 // Minor demo + paint + vanity refresh (MID tier baseline)
   },
   
-  // Condition adjustments
+  // Tier ranges (for displaying to customer)
+  ranges: {
+    'tub-to-shower': { low: [8614, 9514], mid: [9514, 10614], high: [10614, 12000] },
+    'full-bathroom': { low: [15000, 20000], mid: [20000, 30000], high: [30000, 50000] },
+    'cosmetic': { low: [4000, 6000], mid: [6000, 10000], high: [10000, 15000] }
+  },
+  
+  // Condition adjustments (for full-bathroom/cosmetic)
   condition: {
-    'pull-refresh': 0,
-    'full-redesign': 2000,
-    'cosmetic': -1500
+    'pull-refresh': 1000,
+    'full-redesign': 3000,
+    'cosmetic': -1000
   },
   
-  // Tile cost per job (NOT per sqft) - by fixture quality tier
+  // Tile cost per job - by fixture quality tier
   tile: {
     'low': 700,
-    'mid': 900,
-    'high': 1500
+    'mid': 1200,
+    'high': 2000
   },
   
-  // Flooring cost per sq ft (separate from tile in shower)
+  // Flooring cost per sq ft (bathroom flooring beyond shower area)
   flooring: {
     'tile': 35,
     'vinyl': 12,
@@ -43,14 +49,14 @@ const PRICING = {
   
   // Fixture quality additions
   fixtures: {
-    'low': 300,
-    'mid': 700,
-    'high': 1200
+    'low': 500,
+    'mid': 1000,
+    'high': 2000
   },
   
   // Glass enclosure costs (frameless only, or $0 for curtain)
   glass: {
-    'frameless': 2500,  // Mid-range: $2,200-$2,800, using $2,500 average
+    'frameless': 2500,
     'curtain': 0
   },
   
