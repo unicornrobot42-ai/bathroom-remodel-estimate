@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import sharp from 'sharp';
 
 // CORS headers
 const corsHeaders = {
@@ -110,6 +111,19 @@ async function analyzeImage(imageBase64, formData) {
     if (matches) {
       mediaType = matches[1];
       imageData = matches[2];
+    }
+  }
+  
+  // Convert HEIC to JPEG if needed (Claude Vision prefers JPG/PNG)
+  if (mediaType === 'image/heic' || mediaType === 'image/heic-p') {
+    try {
+      const buffer = Buffer.from(imageData, 'base64');
+      const converted = await sharp(buffer).jpeg().toBuffer();
+      imageData = converted.toString('base64');
+      mediaType = 'image/jpeg';
+    } catch (error) {
+      console.error('HEIC conversion error:', error);
+      // Continue with original image if conversion fails
     }
   }
   
