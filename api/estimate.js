@@ -9,24 +9,31 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-// Pricing configuration
-// NOTE: Base prices do NOT include glass or top-tier fixtures
+// Pricing configuration - Based on Justin's actual pricing
+// TUB-TO-SHOWER: Base $5,414 (labor, demo, plumbing, hot mop, finish work)
 const PRICING = {
-  // Base prices by project type (low fixtures, no glass)
+  // Base cost (labor + demo + plumbing + hot mop + finishing)
   base: {
-    'tub-to-shower': 7500,           // Low fixtures, no glass
-    'full-bathroom': 12000,          // Low fixtures, no glass
-    'cosmetic': 4000                 // Low fixtures, no glass
+    'tub-to-shower': 5414,           // Labor + demo + plumbing + hot mop + finish
+    'full-bathroom': 12000,          // (To be filled in from budget)
+    'cosmetic': 4000                 // (To be filled in from budget)
   },
   
   // Condition adjustments
   condition: {
     'pull-refresh': 0,
-    'full-redesign': 4000,
-    'cosmetic': -2500
+    'full-redesign': 2000,
+    'cosmetic': -1500
   },
   
-  // Flooring cost per sq ft
+  // Tile cost per job (NOT per sqft) - by fixture quality tier
+  tile: {
+    'low': 700,
+    'mid': 900,
+    'high': 1500
+  },
+  
+  // Flooring cost per sq ft (separate from tile in shower)
   flooring: {
     'tile': 35,
     'vinyl': 12,
@@ -34,16 +41,16 @@ const PRICING = {
     'other': 20
   },
   
-  // Fixture quality additions (ONLY for mid/high, low is included in base)
+  // Fixture quality additions
   fixtures: {
-    'low': 0,
-    'mid': 500,
+    'low': 300,
+    'mid': 700,
     'high': 1200
   },
   
-  // Glass enclosure costs
+  // Glass enclosure costs (frameless only, or $0 for curtain)
   glass: {
-    'frameless': 2200,
+    'frameless': 2500,  // Mid-range: $2,200-$2,800, using $2,500 average
     'curtain': 0
   },
   
@@ -59,41 +66,53 @@ const PRICING = {
 function calculateBaseEstimate(data) {
   const { projectType, condition, flooring, fixtureQuality, plumbing, glass, squareFootage } = data;
   
-  // Start with base price for project type (low fixtures, no glass included)
+  // Start with base labor cost for project type
   let basePrice = PRICING.base[projectType] || PRICING.base['tub-to-shower'];
   
-  // Size scaling factor
+  // Size scaling factor (for base labor)
   let sizeFactor = 1;
   if (squareFootage <= 60) {
-    sizeFactor = 0.9;
+    sizeFactor = 0.95;
   } else if (squareFootage >= 150) {
-    sizeFactor = 1.25;
+    sizeFactor = 1.10;
   } else if (squareFootage >= 120) {
-    sizeFactor = 1.15;
-  } else if (squareFootage >= 100) {
     sizeFactor = 1.08;
+  } else if (squareFootage >= 100) {
+    sizeFactor = 1.04;
   }
   
   basePrice = Math.round(basePrice * sizeFactor);
   
   // Calculate individual costs (additive)
   const conditionCost = PRICING.condition[condition] || 0;
+  
+  // Tile cost (by fixture quality tier, not per-sqft)
+  const tileCost = PRICING.tile[fixtureQuality] || PRICING.tile.mid;
+  
+  // Flooring cost (bathroom flooring beyond shower area, per sqft)
   const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * squareFootage);
-  const fixtureCost = PRICING.fixtures[fixtureQuality] || 0;
+  
+  // Fixture cost (for this fixture quality tier)
+  const fixtureCost = PRICING.fixtures[fixtureQuality] || PRICING.fixtures.mid;
+  
+  // Glass cost (frameless or curtain)
   const glassCost = PRICING.glass[glass] || 0;
+  
+  // Plumbing cost
   const plumbingCost = PRICING.plumbing[plumbing] || 0;
   
   const breakdown = {
-    basePrice: basePrice + conditionCost,
+    base: basePrice + conditionCost,
+    tile: tileCost,
     flooring: flooringCost,
     fixtures: fixtureCost,
     glass: glassCost,
     plumbing: plumbingCost
   };
   
-  const total = breakdown.basePrice + breakdown.flooring + breakdown.fixtures + breakdown.glass + breakdown.plumbing;
+  const total = breakdown.base + breakdown.tile + breakdown.flooring + breakdown.fixtures + breakdown.glass + breakdown.plumbing;
   
-  // Return with 20% margin for estimate range
+  // Return with range: -5% for low, +15% for high
   const lowEstimate = Math.round(total * 0.95);
   const highEstimate = Math.round(total * 1.15);
   
