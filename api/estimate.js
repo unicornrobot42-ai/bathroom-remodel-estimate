@@ -20,9 +20,15 @@ const PRICING = {
   },
   
   // Tier ranges (for displaying to customer)
+  // Full bathroom ranges now account for size
   ranges: {
     'tub-to-shower': { low: [8614, 9514], mid: [9514, 10614], high: [10614, 12000] },
-    'full-bathroom': { low: [15000, 20000], mid: [20000, 30000], high: [30000, 50000] },
+    'full-bathroom': { 
+      // Size-based ranges
+      small: { low: [15000, 20000], mid: [18000, 25000], high: [22000, 32000] },   // 40-90 sqft
+      standard: { low: [20000, 27000], mid: [24000, 35000], high: [30000, 45000] }, // 90-130 sqft
+      large: { low: [25000, 35000], mid: [30000, 45000], high: [40000, 60000] }    // 130+ sqft
+    },
     'cosmetic': { low: [4000, 6000], mid: [6000, 10000], high: [10000, 15000] }
   },
   
@@ -302,7 +308,7 @@ async function sendLeadNotification(data, lowEstimate, highEstimate, imageAnalys
         personalizations: [{
           to: [{ email: 'justin@timberlinebuild.co' }]
         }],
-        from: { email: 'leads@timberlinebuild.co', name: 'Timberline Leads' },
+        from: { email: 'justin@timberlinebuild.co', name: 'Timberline Build Co' },
         subject: `New Lead: ${data.name || 'Customer'} - $${lowEstimate.toLocaleString()} - $${highEstimate.toLocaleString()}`,
         content: [{
           type: 'text/html',
