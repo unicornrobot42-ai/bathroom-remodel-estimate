@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
-import fetch from 'node-fetch';
 
 // CORS headers
 const corsHeaders = {
