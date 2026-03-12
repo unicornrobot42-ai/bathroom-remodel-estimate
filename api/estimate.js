@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
+import fetch from 'node-fetch';
 
 // CORS headers
 const corsHeaders = {
@@ -13,9 +14,9 @@ const corsHeaders = {
 const PRICING = {
   // Base cost by project type
   base: {
-    'tub-to-shower': 5414,           // Labor + demo + plumbing + hot mop + finish
-    'full-bathroom': 8000,           // Labor + demo + materials (MID tier baseline)
-    'cosmetic': 8000                 // Minor demo + paint + vanity refresh (MID tier baseline)
+    'tub-to-shower': 5414,
+    'full-bathroom': 8000,
+    'cosmetic': 8000
   },
   
   // Tier ranges (for displaying to customer)
@@ -25,21 +26,18 @@ const PRICING = {
     'cosmetic': { low: [4000, 6000], mid: [6000, 10000], high: [10000, 15000] }
   },
   
-  // Condition adjustments (for full-bathroom/cosmetic)
   condition: {
     'pull-refresh': 1000,
     'full-redesign': 3000,
     'cosmetic': -1000
   },
   
-  // Tile cost per job - by fixture quality tier
   tile: {
     'low': 700,
     'mid': 1200,
     'high': 2000
   },
   
-  // Flooring cost per sq ft (bathroom flooring beyond shower area)
   flooring: {
     'tile': 35,
     'vinyl': 12,
@@ -47,20 +45,17 @@ const PRICING = {
     'other': 20
   },
   
-  // Fixture quality additions
   fixtures: {
     'low': 500,
     'mid': 1000,
     'high': 2000
   },
   
-  // Glass enclosure costs (frameless only, or $0 for curtain)
   glass: {
     'frameless': 2500,
     'curtain': 0
   },
   
-  // Plumbing work costs
   plumbing: {
     'keep': 0,
     'minor': 500,
@@ -68,14 +63,277 @@ const PRICING = {
   }
 };
 
-// Calculate base estimate from form data
+// ============================================================================
+// AIRTABLE INTEGRATION
+// ============================================================================
+
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appDl3z8M1ZhVzv4k';
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
+
+async function airtableRequest(table, method, data = null) {
+  if (!AIRTABLE_TOKEN) {
+    console.warn('AIRTABLE_TOKEN not set - skipping Airtable integration');
+    return null;
+  }
+  
+  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(table)}`;
+  
+  const options = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  };
+  
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+  
+  try {
+    const response = await fetch(url, options);
+    const result = await response.json();
+    
+    if (result.error) {
+      console.error(`Airtable error (${table}):`, result.error);
+      return null;
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`Airtable request failed (${table}):`, error);
+    return null;
+  }
+}
+
+async function createContact(data) {
+  const fields = {
+    'Name': data.name || 'Unknown',
+    'Email': data.email,
+    'Phone': data.phone,
+    'Address': data.address || '',
+    'City': data.city || '',
+    'State': data.state || '',
+    'ZIP': data.zip || '',
+    'Date Created': new Date().toISOString(),
+    'Notes': `Source: Website estimate form`
+  };
+  
+  const result = await airtableRequest('Contacts', 'POST', { fields });
+  return result?.id || null;
+}
+
+async function createEstimate(data, contactId, lowEstimate, highEstimate, imageAnalysis) {
+  const fields = {
+    'Contact': contactId ? [contactId] : [],
+    'Project Type': data.projectType,
+    'Fixture Quality': data.fixtureQuality,
+    'Estimated Price Low': lowEstimate,
+    'Estimated Price High': highEstimate,
+    'Square Footage': parseInt(data.squareFootage) || 0,
+    'Date Created': new Date().toISOString(),
+    'Image Analysis Notes': imageAnalysis || ''
+  };
+  
+  // Add photo URL if image was uploaded (we'd need to store it somewhere)
+  if (data.image) {
+    fields['Photo URL'] = 'Photo uploaded (stored in logs)';
+  }
+  
+  const result = await airtableRequest('Estimates', 'POST', { fields });
+  return result?.id || null;
+}
+
+async function createPipelineRecord(contactId) {
+  const fields = {
+    'Contact': contactId ? [contactId] : [],
+    'Current Status': 'New Lead',
+    'Last Updated': new Date().toISOString(),
+    'Internal Notes': 'Auto-created from website estimate',
+    'Next Action': 'Review estimate and follow up'
+  };
+  
+  const result = await airtableRequest('Pipeline', 'POST', { fields });
+  return result?.id || null;
+}
+
+// ============================================================================
+// EMAIL NOTIFICATION (Resend)
+// ============================================================================
+
+async function sendLeadNotification(data, lowEstimate, highEstimate, imageAnalysis, contactId) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  
+  if (!RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set - skipping email notification');
+    return false;
+  }
+  
+  const projectTypeLabels = {
+    'tub-to-shower': 'Tub to Shower Conversion',
+    'full-bathroom': 'Full Bathroom Remodel',
+    'cosmetic': 'Cosmetic Refresh'
+  };
+  
+  const fixtureLabels = {
+    'low': 'Budget',
+    'mid': 'Mid-Range',
+    'high': 'Premium'
+  };
+  
+  const airtableLink = contactId 
+    ? `https://airtable.com/${AIRTABLE_BASE_ID}/tblContacts/${contactId}`
+    : `https://airtable.com/${AIRTABLE_BASE_ID}`;
+  
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #2d5016 0%, #4a7c23 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .content { background: #f9f9f9; padding: 20px; border: 1px solid #e0e0e0; }
+    .estimate-box { background: white; border: 2px solid #4a7c23; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center; }
+    .estimate-range { font-size: 28px; font-weight: bold; color: #2d5016; }
+    .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .detail-label { font-weight: 600; min-width: 120px; }
+    .cta-button { display: inline-block; background: #4a7c23; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px; }
+    .footer { text-align: center; padding: 15px; color: #666; font-size: 12px; }
+    .analysis { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">🏠 New Lead Alert</h1>
+      <p style="margin: 5px 0 0 0; opacity: 0.9;">Timberline Build Co - Website Estimate</p>
+    </div>
+    
+    <div class="content">
+      <div class="estimate-box">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">ESTIMATED RANGE</div>
+        <div class="estimate-range">$${lowEstimate.toLocaleString()} - $${highEstimate.toLocaleString()}</div>
+      </div>
+      
+      <h3 style="margin-bottom: 10px;">📋 Project Details</h3>
+      
+      <div class="detail-row">
+        <span class="detail-label">Project Type:</span>
+        <span>${projectTypeLabels[data.projectType] || data.projectType}</span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Fixture Quality:</span>
+        <span>${fixtureLabels[data.fixtureQuality] || data.fixtureQuality}</span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Square Footage:</span>
+        <span>${data.squareFootage} sq ft</span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Photo:</span>
+        <span>${data.image ? '✅ Yes' : '❌ No'}</span>
+      </div>
+      
+      <h3 style="margin: 20px 0 10px 0;">👤 Customer Info</h3>
+      
+      <div class="detail-row">
+        <span class="detail-label">Name:</span>
+        <span>${data.name || 'Not provided'}</span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Email:</span>
+        <span><a href="mailto:${data.email}">${data.email}</a></span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Phone:</span>
+        <span><a href="tel:${data.phone}">${data.phone}</a></span>
+      </div>
+      
+      ${data.address ? `
+      <div class="detail-row">
+        <span class="detail-label">Address:</span>
+        <span>${data.address}${data.city ? `, ${data.city}` : ''}${data.state ? `, ${data.state}` : ''} ${data.zip || ''}</span>
+      </div>
+      ` : ''}
+      
+      ${imageAnalysis ? `
+      <div class="analysis">
+        <strong>📸 AI Photo Analysis:</strong><br>
+        ${imageAnalysis}
+      </div>
+      ` : ''}
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="${airtableLink}" class="cta-button">View in CRM →</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>Auto-generated by Timberline Build Co Lead Capture System</p>
+      <p>${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })} PT</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+  
+  try {
+    const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+    
+    if (!SENDGRID_API_KEY) {
+      console.warn('SENDGRID_API_KEY not configured');
+      return false;
+    }
+    
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        personalizations: [{
+          to: [{ email: 'justin@timberlinebuild.co' }]
+        }],
+        from: { email: 'leads@timberlinebuild.co', name: 'Timberline Leads' },
+        subject: `New Lead: ${data.name || 'Customer'} - $${lowEstimate.toLocaleString()} - $${highEstimate.toLocaleString()}`,
+        content: [{
+          type: 'text/html',
+          value: emailHtml
+        }]
+      })
+    });
+    
+    if (response.ok) {
+      console.log('Lead notification sent via Sendgrid');
+      return true;
+    } else {
+      const error = await response.text();
+      console.error('Sendgrid error:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Email send failed:', error);
+    return false;
+  }
+}
+
+// ============================================================================
+// ESTIMATE CALCULATION
+// ============================================================================
+
 function calculateBaseEstimate(data) {
   const { projectType, condition, flooring, fixtureQuality, plumbing, glass, squareFootage } = data;
   
-  // Start with base labor cost for project type
   let basePrice = PRICING.base[projectType] || PRICING.base['tub-to-shower'];
   
-  // Size scaling factor (for base labor)
   let sizeFactor = 1;
   if (squareFootage <= 60) {
     sizeFactor = 0.95;
@@ -89,22 +347,11 @@ function calculateBaseEstimate(data) {
   
   basePrice = Math.round(basePrice * sizeFactor);
   
-  // Calculate individual costs (additive)
   const conditionCost = PRICING.condition[condition] || 0;
-  
-  // Tile cost (by fixture quality tier, not per-sqft)
   const tileCost = PRICING.tile[fixtureQuality] || PRICING.tile.mid;
-  
-  // Flooring cost (bathroom flooring beyond shower area, per sqft)
   const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * squareFootage);
-  
-  // Fixture cost (for this fixture quality tier)
   const fixtureCost = PRICING.fixtures[fixtureQuality] || PRICING.fixtures.mid;
-  
-  // Glass cost (frameless or curtain)
   const glassCost = PRICING.glass[glass] || 0;
-  
-  // Plumbing cost
   const plumbingCost = PRICING.plumbing[plumbing] || 0;
   
   const breakdown = {
@@ -118,20 +365,21 @@ function calculateBaseEstimate(data) {
   
   const total = breakdown.base + breakdown.tile + breakdown.flooring + breakdown.fixtures + breakdown.glass + breakdown.plumbing;
   
-  // Return with range: -5% for low, +15% for high
   const lowEstimate = Math.round(total * 0.95);
   const highEstimate = Math.round(total * 1.15);
   
   return { lowEstimate, highEstimate, breakdown };
 }
 
-// Analyze bathroom image with Claude Vision
+// ============================================================================
+// IMAGE ANALYSIS
+// ============================================================================
+
 async function analyzeImage(imageBase64, formData) {
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   });
   
-  // Extract base64 data (remove data URL prefix if present)
   let imageData = imageBase64;
   let mediaType = 'image/jpeg';
   
@@ -143,7 +391,6 @@ async function analyzeImage(imageBase64, formData) {
     }
   }
   
-  // Convert HEIC to JPEG if needed (Claude Vision prefers JPG/PNG)
   if (mediaType === 'image/heic' || mediaType === 'image/heic-p') {
     try {
       const buffer = Buffer.from(imageData, 'base64');
@@ -152,7 +399,6 @@ async function analyzeImage(imageBase64, formData) {
       mediaType = 'image/jpeg';
     } catch (error) {
       console.error('HEIC conversion error:', error);
-      // Continue with original image if conversion fails
     }
   }
   
@@ -223,10 +469,7 @@ Respond in this exact JSON format:
       ]
     });
     
-    // Parse the response
     const text = response.content[0].text;
-    
-    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
@@ -239,7 +482,10 @@ Respond in this exact JSON format:
   }
 }
 
-// Main handler
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
+
 export default async function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -279,14 +525,12 @@ export default async function handler(req, res) {
         imageAnalysis = analysis.summary;
         const aiAdjustment = analysis.priceAdjustment || 0;
         
-        // Apply AI price adjustment to both estimates
         if (aiAdjustment !== 0) {
           const adjustmentFactor = 1 + (aiAdjustment / 100);
           lowEstimate = Math.round(lowEstimate * adjustmentFactor);
           highEstimate = Math.round(highEstimate * adjustmentFactor);
         }
         
-        // If AI estimates different square footage, note it in the analysis
         if (analysis.sqFtDifference) {
           imageAnalysis += ` ${analysis.sqFtDifference}`;
         }
@@ -301,7 +545,45 @@ export default async function handler(req, res) {
     const discountDeadline = new Date();
     discountDeadline.setDate(discountDeadline.getDate() + 7);
     
-    // Log lead (in production, you'd send this to a CRM)
+    // ========================================================================
+    // CRM INTEGRATION - Save to Airtable + Send Email
+    // ========================================================================
+    
+    let contactId = null;
+    let estimateId = null;
+    let pipelineId = null;
+    let emailSent = false;
+    
+    // Run CRM operations in parallel (non-blocking)
+    try {
+      // Create contact first (needed for linking)
+      contactId = await createContact(data);
+      
+      // Create estimate and pipeline records in parallel
+      const [estResult, pipeResult] = await Promise.all([
+        createEstimate(data, contactId, lowEstimate, highEstimate, imageAnalysis),
+        createPipelineRecord(contactId)
+      ]);
+      
+      estimateId = estResult;
+      pipelineId = pipeResult;
+      
+      // Send email notification (non-blocking)
+      emailSent = await sendLeadNotification(data, lowEstimate, highEstimate, imageAnalysis, contactId);
+      
+      console.log('CRM Integration:', {
+        contactId,
+        estimateId,
+        pipelineId,
+        emailSent,
+        timestamp: new Date().toISOString()
+      });
+    } catch (crmError) {
+      // Log CRM errors but don't fail the request
+      console.error('CRM integration error:', crmError);
+    }
+    
+    // Log lead (original logging preserved)
     console.log('New lead:', {
       name: data.name,
       email: data.email,
@@ -309,10 +591,12 @@ export default async function handler(req, res) {
       projectType: data.projectType,
       estimate: `$${lowEstimate.toLocaleString()} - $${highEstimate.toLocaleString()}`,
       hasImage: !!data.image,
+      airtableContactId: contactId,
+      emailSent,
       timestamp: new Date().toISOString()
     });
     
-    // Return estimate (breakdown NOT sent to customer, only internal logging)
+    // Return estimate to customer
     return res.status(200).json({
       lowEstimate,
       highEstimate,
