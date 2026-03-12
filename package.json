@@ -2,6 +2,7 @@
   "name": "timberline-estimate-api",
   "version": "1.0.0",
   "description": "AI-powered bathroom remodel estimate API for Timberline Build Co",
+  "type": "module",
   "main": "api/estimate.js",
   "scripts": {
     "dev": "vercel dev",
