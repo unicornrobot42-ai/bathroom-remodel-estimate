@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "timberline-estimate-api",
+  "name": "bathroom-remodel-estimate",
   "builds": [
     {
       "src": "api/**/*.js",
