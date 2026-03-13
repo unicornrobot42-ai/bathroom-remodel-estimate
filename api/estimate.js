@@ -15,7 +15,7 @@ const PRICING = {
   // Base cost by project type
   base: {
     'tub-to-shower': 5414,
-    'full-bathroom': 8000,
+    'full-bathroom': 14000,
     'cosmetic': 8000
   },
   
