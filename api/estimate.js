@@ -607,7 +607,14 @@ export default async function handler(req, res) {
       highEstimate,
       imageAnalysis,
       discountDeadline: discountDeadline.toISOString(),
-      discountAmount: 1500
+      discountAmount: 1500,
+      breakdown: {
+        basePrice: breakdown.base || 0,
+        flooring: breakdown.flooring || 0,
+        fixtures: breakdown.fixtures || 0,
+        glass: breakdown.glass || 0,
+        plumbing: breakdown.plumbing || 0
+      }
     });
     
   } catch (error) {
