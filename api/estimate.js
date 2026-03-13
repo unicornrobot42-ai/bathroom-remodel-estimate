@@ -129,10 +129,17 @@ async function createContact(data) {
 }
 
 async function createEstimate(data, contactId, lowEstimate, highEstimate, imageAnalysis) {
+  // Map form values to Airtable dropdown options
+  const fixtureQualityMap = {
+    'low': 'Basic',
+    'mid': 'Mid',
+    'high': 'Premium'
+  };
+  
   const fields = {
     'Contact': contactId ? [contactId] : [],
     'Project Type': data.projectType,
-    'Fixture Quality': data.fixtureQuality,
+    'Fixture Quality': fixtureQualityMap[data.fixtureQuality] || data.fixtureQuality,
     'Price Low': lowEstimate,
     'Price High': highEstimate,
     'Square Footage': parseInt(data.squareFootage) || 0,
