@@ -1,6 +1,34 @@
 import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
 import { put } from '@vercel/blob';
+import heicConvert from 'heic-convert';
+
+// Detect HEIC by magic bytes (first bytes of file)
+function isHeicBuffer(buffer) {
+  // HEIC files start with ftyp box containing 'heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'
+  if (buffer.length < 12) return false;
+  const ftypBox = buffer.slice(4, 8).toString('ascii');
+  if (ftypBox !== 'ftyp') return false;
+  const brand = buffer.slice(8, 12).toString('ascii');
+  return ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand);
+}
+
+// Convert HEIC to JPEG using pure JavaScript decoder
+async function convertHeicToJpeg(buffer) {
+  try {
+    console.log('Converting HEIC to JPEG...');
+    const jpegBuffer = await heicConvert({
+      buffer: buffer,
+      format: 'JPEG',
+      quality: 0.9
+    });
+    console.log(`HEIC converted: ${(buffer.length/1024).toFixed(0)}KB → ${(jpegBuffer.length/1024).toFixed(0)}KB`);
+    return Buffer.from(jpegBuffer);
+  } catch (error) {
+    console.error('HEIC conversion error:', error);
+    throw error;
+  }
+}
 
 // CORS headers
 const corsHeaders = {
@@ -84,43 +112,35 @@ async function uploadImageToBlob(base64Image, filename) {
     
     const imageType = matches[1];
     const base64Data = matches[2];
-    const buffer = Buffer.from(base64Data, 'base64');
+    let buffer = Buffer.from(base64Data, 'base64');
     
-    let uploadBuffer = buffer;
-    let contentType = `image/${imageType}`;
-    let fileExtension = imageType;
-    
-    // Try to compress image (may fail for HEIC)
-    try {
-      const compressedBuffer = await sharp(buffer)
-        .resize(1920, null, { 
-          withoutEnlargement: true,
-          fit: 'inside'
-        })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-      
-      const originalSize = (buffer.length / 1024).toFixed(0);
-      const compressedSize = (compressedBuffer.length / 1024).toFixed(0);
-      console.log(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
-      
-      uploadBuffer = compressedBuffer;
-      contentType = 'image/jpeg';
-      fileExtension = 'jpg';
-    } catch (compressionError) {
-      // HEIC or other format Sharp can't handle - upload original
-      console.warn('Image compression failed (likely HEIC), uploading original:', compressionError.message);
-      // Keep original buffer, contentType, and extension
+    // Check if this is a HEIC file and convert it
+    if (isHeicBuffer(buffer) || imageType === 'heic' || imageType === 'heif') {
+      console.log('HEIC detected, converting to JPEG...');
+      buffer = await convertHeicToJpeg(buffer);
     }
+    
+    // Compress image with Sharp (now always JPEG-compatible)
+    const compressedBuffer = await sharp(buffer)
+      .resize(1920, null, { 
+        withoutEnlargement: true,
+        fit: 'inside'
+      })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    const originalSize = (buffer.length / 1024).toFixed(0);
+    const compressedSize = (compressedBuffer.length / 1024).toFixed(0);
+    console.log(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
     
     // Generate unique filename
     const timestamp = Date.now();
-    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.${fileExtension}`;
+    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.jpg`;
     
     // Upload to Vercel Blob
-    const blob = await put(uniqueFilename, uploadBuffer, {
+    const blob = await put(uniqueFilename, compressedBuffer, {
       access: 'public',
-      contentType: contentType
+      contentType: 'image/jpeg'
     });
     
     console.log('Image uploaded to Vercel Blob:', blob.url);
@@ -466,15 +486,32 @@ async function analyzeImage(imageBase64, formData) {
     }
   }
   
-  if (mediaType === 'image/heic' || mediaType === 'image/heic-p') {
+  // Convert HEIC to JPEG for Claude Vision
+  if (mediaType === 'image/heic' || mediaType === 'image/heif' || mediaType === 'image/heic-p') {
     try {
+      console.log('Converting HEIC for Vision analysis...');
       const buffer = Buffer.from(imageData, 'base64');
-      const converted = await sharp(buffer).jpeg().toBuffer();
-      imageData = converted.toString('base64');
+      const jpegBuffer = await convertHeicToJpeg(buffer);
+      imageData = jpegBuffer.toString('base64');
       mediaType = 'image/jpeg';
     } catch (error) {
-      console.error('HEIC conversion error:', error);
+      console.error('HEIC conversion for Vision failed:', error);
+      // Return null to skip Vision analysis but continue with estimate
+      return null;
     }
+  }
+  
+  // Also check by magic bytes in case mime type is wrong
+  try {
+    const testBuffer = Buffer.from(imageData, 'base64');
+    if (isHeicBuffer(testBuffer)) {
+      console.log('HEIC detected by magic bytes, converting...');
+      const jpegBuffer = await convertHeicToJpeg(testBuffer);
+      imageData = jpegBuffer.toString('base64');
+      mediaType = 'image/jpeg';
+    }
+  } catch (error) {
+    console.warn('HEIC magic byte check failed:', error.message);
   }
   
   const prompt = `You are a bathroom remodeling expert analyzing a customer's bathroom photo for a remodel estimate.
