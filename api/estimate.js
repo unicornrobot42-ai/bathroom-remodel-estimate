@@ -112,6 +112,8 @@ async function airtableRequest(table, method, data = null) {
 }
 
 async function createContact(data) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
   const fields = {
     'Name': data.name || 'Unknown',
     'Email': data.email,
@@ -120,7 +122,7 @@ async function createContact(data) {
     'City': data.city || '',
     'State': data.state || '',
     'ZIP': data.zip || '',
-    'Date Created': new Date().toISOString(),
+    'Date Created': today,
     'Notes': `Source: Website estimate form`
   };
   
@@ -129,6 +131,8 @@ async function createContact(data) {
 }
 
 async function createEstimate(data, contactId, lowEstimate, highEstimate, imageAnalysis) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
   const fields = {
     'Contact': contactId ? [contactId] : [],
     'Project Type': data.projectType,
@@ -136,7 +140,7 @@ async function createEstimate(data, contactId, lowEstimate, highEstimate, imageA
     'Estimated Price Low': lowEstimate,
     'Estimated Price High': highEstimate,
     'Square Footage': parseInt(data.squareFootage) || 0,
-    'Date Created': new Date().toISOString(),
+    'Date Created': today,
     'Image Analysis Notes': imageAnalysis || ''
   };
   
@@ -150,10 +154,12 @@ async function createEstimate(data, contactId, lowEstimate, highEstimate, imageA
 }
 
 async function createPipelineRecord(contactId) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
   const fields = {
     'Contact': contactId ? [contactId] : [],
     'Current Status': 'New Lead',
-    'Last Updated': new Date().toISOString(),
+    'Last Updated': today,
     'Internal Notes': 'Auto-created from website estimate',
     'Next Action': 'Review estimate and follow up'
   };
