@@ -82,18 +82,31 @@ async function uploadImageToBlob(base64Image, filename) {
       return null;
     }
     
-    const imageType = matches[1];
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
     
+    // Compress image: resize to max 1920px width, 80% JPEG quality
+    // This reduces ~8MB phone photos to ~200-500KB
+    const compressedBuffer = await sharp(buffer)
+      .resize(1920, null, { 
+        withoutEnlargement: true,  // Don't upscale small images
+        fit: 'inside'
+      })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    const originalSize = (buffer.length / 1024).toFixed(0);
+    const compressedSize = (compressedBuffer.length / 1024).toFixed(0);
+    console.log(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
+    
     // Generate unique filename
     const timestamp = Date.now();
-    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.${imageType}`;
+    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.jpg`;
     
     // Upload to Vercel Blob
-    const blob = await put(uniqueFilename, buffer, {
+    const blob = await put(uniqueFilename, compressedBuffer, {
       access: 'public',
-      contentType: `image/${imageType}`
+      contentType: 'image/jpeg'
     });
     
     console.log('Image uploaded to Vercel Blob:', blob.url);
