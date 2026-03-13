@@ -82,31 +82,45 @@ async function uploadImageToBlob(base64Image, filename) {
       return null;
     }
     
+    const imageType = matches[1];
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
     
-    // Compress image: resize to max 1920px width, 80% JPEG quality
-    // This reduces ~8MB phone photos to ~200-500KB
-    const compressedBuffer = await sharp(buffer)
-      .resize(1920, null, { 
-        withoutEnlargement: true,  // Don't upscale small images
-        fit: 'inside'
-      })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    let uploadBuffer = buffer;
+    let contentType = `image/${imageType}`;
+    let fileExtension = imageType;
     
-    const originalSize = (buffer.length / 1024).toFixed(0);
-    const compressedSize = (compressedBuffer.length / 1024).toFixed(0);
-    console.log(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
+    // Try to compress image (may fail for HEIC)
+    try {
+      const compressedBuffer = await sharp(buffer)
+        .resize(1920, null, { 
+          withoutEnlargement: true,
+          fit: 'inside'
+        })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      
+      const originalSize = (buffer.length / 1024).toFixed(0);
+      const compressedSize = (compressedBuffer.length / 1024).toFixed(0);
+      console.log(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
+      
+      uploadBuffer = compressedBuffer;
+      contentType = 'image/jpeg';
+      fileExtension = 'jpg';
+    } catch (compressionError) {
+      // HEIC or other format Sharp can't handle - upload original
+      console.warn('Image compression failed (likely HEIC), uploading original:', compressionError.message);
+      // Keep original buffer, contentType, and extension
+    }
     
     // Generate unique filename
     const timestamp = Date.now();
-    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.jpg`;
+    const uniqueFilename = `${timestamp}-${filename || 'bathroom-photo'}.${fileExtension}`;
     
     // Upload to Vercel Blob
-    const blob = await put(uniqueFilename, compressedBuffer, {
+    const blob = await put(uniqueFilename, uploadBuffer, {
       access: 'public',
-      contentType: 'image/jpeg'
+      contentType: contentType
     });
     
     console.log('Image uploaded to Vercel Blob:', blob.url);
