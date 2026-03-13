@@ -167,10 +167,10 @@ async function createPipelineRecord(contactId) {
 // ============================================================================
 
 async function sendLeadNotification(data, lowEstimate, highEstimate, imageAnalysis, contactId) {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
   
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not set - skipping email notification');
+  if (!SENDGRID_API_KEY) {
+    console.warn('SENDGRID_API_KEY not set - skipping email notification');
     return false;
   }
   
@@ -615,4 +615,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to calculate estimate' });
   }
 }
-// Force redeploy Thu Mar 12 16:51:03 PDT 2026
