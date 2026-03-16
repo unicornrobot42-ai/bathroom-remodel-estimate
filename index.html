@@ -926,6 +926,12 @@
       overflow-y: auto;
     }
     
+    /* Results screen (11) — align to top so price shows first, not centered */
+    .form-main:has(.form-screen[data-screen="11"].active),
+    .form-main.results-active {
+      align-items: flex-start;
+    }
+    
     .form-screen {
       display: none;
       width: 100%;
@@ -2809,6 +2815,14 @@
           // Also defer scroll in case content renders after screen switch
           setTimeout(function() { formMain.scrollTop = 0; }, 50);
           setTimeout(function() { formMain.scrollTop = 0; }, 300);
+          
+          // Results screen (11): use flex-start so price hero shows first, not centered
+          // This is a JS fallback for browsers that don't support :has()
+          if (n === 11) {
+            formMain.classList.add('results-active');
+          } else {
+            formMain.classList.remove('results-active');
+          }
         }
         
         // Progress
