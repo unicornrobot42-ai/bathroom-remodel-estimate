@@ -44,41 +44,41 @@ const corsHeaders = {
 const PRICING = {
 
   // ─── TUB-TO-SHOWER CONVERSION ───────────────────────────────────────────────
+  // OC market range: $12k–$25k. Timberline pricing ~12% below market.
   // Scope: demo existing tub, hot mop, tile labor, tile material, new fixtures,
   // shower glass, plumbing reconnect, patch drywall, paint.
-  // OC market range: $12k–$25k depending on finish level.
   tubToShower: {
-    low:  12000,   // Basic tile, curtain rod, budget fixtures
-    mid:  17000,   // Mid-range tile, frameless glass, decent fixtures
-    high: 24000    // Designer tile, premium frameless glass, high-end fixtures
+    low:  10500,   // Basic tile, curtain rod, budget fixtures
+    mid:  15000,   // Mid-range tile, frameless glass, decent fixtures
+    high: 21000    // Designer tile, premium frameless glass, high-end fixtures
   },
 
   // ─── FULL BATHROOM REMODEL ──────────────────────────────────────────────────
+  // OC market: $150–$360/sqft. Timberline ~12% below market — strong value position.
   // Scope: full gut, new tile/flooring, vanity, toilet, fixtures, shower/tub,
   // drywall, paint, electrical, plumbing.
-  // OC market: $25k–$60k. Timberline sweet spot: $28k–$55k.
-  // Rate per sq ft by quality tier (all-in client price):
   fullBath: {
     perSqFt: {
-      low:  195,   // ~$150/sqft labor + materials; standard finishes
-      mid:  265,   // ~$200/sqft; mid-range tile, custom vanity, frameless glass
-      high: 360    // ~$275/sqft; designer tile, premium fixtures, luxury finishes
+      low:  170,   // Standard finishes, straight-forward layout
+      mid:  230,   // Mid-range tile, custom vanity, frameless glass
+      high: 315    // Designer tile, premium fixtures, luxury finishes
     },
-    // Minimum floors prevent absurdly low estimates on small baths
+    // Minimums prevent absurdly low estimates on very small baths
     minimums: {
-      low:  22000,
-      mid:  30000,
-      high: 42000
+      low:  19000,
+      mid:  26000,
+      high: 36000
     }
   },
 
   // ─── COSMETIC REFRESH ───────────────────────────────────────────────────────
+  // OC market: $8.5k–$20k. Timberline ~12% below.
   // Scope: paint, new fixtures/hardware, vanity swap, flooring (no tile demo),
   // lighting. No major demo or tile work.
   cosmetic: {
-    low:  8500,   // Paint, basic fixture swap
-    mid:  13500,  // New vanity, flooring, fixture upgrade
-    high: 20000   // Full cosmetic: vanity, flooring, lighting, all fixtures
+    low:  7500,   // Paint, basic fixture swap
+    mid:  12000,  // New vanity, flooring, fixture upgrade
+    high: 17500   // Full cosmetic: vanity, flooring, lighting, all fixtures
   },
 
   // ─── ADD-ONS (on top of base) ───────────────────────────────────────────────
@@ -563,12 +563,11 @@ async function analyzeImage(imageBase64, formData) {
   
   const prompt = `You are an expert bathroom remodeling estimator for a licensed General Contractor in Orange County, California (2025–2026 market).
 
-OC MARKET CONTEXT — use these as your pricing anchors:
-- Tub-to-shower conversion: $12,000–$25,000 (basic to premium finish)
-- Full bathroom remodel: $25,000–$60,000 depending on size and quality tier
-- Cosmetic refresh (no demo/tile): $8,500–$20,000
-- Per-sqft all-in rate: $150–$360/sqft depending on scope and finish
-These are CUSTOMER-FACING prices for a quality OC contractor. Do NOT anchor to national averages, which run 30–40% lower than OC.
+OC MARKET CONTEXT — use these as your reference benchmarks:
+- Tub-to-shower conversion: OC market $12k–$25k. Timberline prices ~12% below market.
+- Full bathroom remodel: OC market $25k–$60k ($150–$360/sqft). Timberline ~12% below.
+- Cosmetic refresh: OC market $8.5k–$20k. Timberline ~12% below.
+Timberline Build Co is intentionally priced below the OC market average to be the attractive value choice. Do NOT anchor to national averages (they run 30–40% lower than OC and would make Timberline look expensive).
 
 The customer has provided the following project details:
 - Project Type: ${formData.projectType}
