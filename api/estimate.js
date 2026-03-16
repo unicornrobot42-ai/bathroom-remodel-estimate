@@ -117,12 +117,18 @@ const PRICING = {
 // ============================================================================
 
 async function uploadImageToBlob(base64Image, filename) {
+  // Check for BLOB_READ_WRITE_TOKEN first - this is the most common issue
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error('BLOB_READ_WRITE_TOKEN not set - cannot upload images to Vercel Blob. Add this environment variable in Vercel Dashboard or create a Blob store.');
+    return { url: null, error: 'BLOB_TOKEN_MISSING' };
+  }
+  
   try {
     // Extract the base64 data (remove data:image/jpeg;base64, prefix)
     const matches = base64Image.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!matches) {
       console.warn('Invalid base64 image format');
-      return null;
+      return { url: null, error: 'INVALID_BASE64_FORMAT' };
     }
     
     const imageType = matches[1];
@@ -159,10 +165,10 @@ async function uploadImageToBlob(base64Image, filename) {
     });
     
     console.log('Image uploaded to Vercel Blob:', blob.url);
-    return blob.url;
+    return { url: blob.url, error: null };
   } catch (error) {
-    console.error('Blob upload error:', error);
-    return null;
+    console.error('Blob upload error:', error.message || error);
+    return { url: null, error: error.message || 'UPLOAD_FAILED' };
   }
 }
 
@@ -724,8 +730,15 @@ export default async function handler(req, res) {
     try {
       // Upload image to Vercel Blob first (if provided)
       let imageUrl = null;
+      let imageUploadError = null;
       if (data.image) {
-        imageUrl = await uploadImageToBlob(data.image, `bathroom-${Date.now()}`);
+        const uploadResult = await uploadImageToBlob(data.image, `bathroom-${Date.now()}`);
+        imageUrl = uploadResult.url;
+        imageUploadError = uploadResult.error;
+        
+        if (imageUploadError) {
+          console.warn(`Image upload failed: ${imageUploadError}. Continuing without photo URL.`);
+        }
       }
       
       // Create contact first (needed for linking)
@@ -748,6 +761,8 @@ export default async function handler(req, res) {
         estimateId,
         pipelineId,
         emailSent,
+        imageUrl: imageUrl || 'NOT_UPLOADED',
+        imageUploadError: imageUploadError || null,
         timestamp: new Date().toISOString()
       });
     } catch (crmError) {
