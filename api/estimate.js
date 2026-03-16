@@ -442,6 +442,190 @@ async function sendLeadNotification(data, lowEstimate, highEstimate, imageAnalys
 }
 
 // ============================================================================
+// CUSTOMER CONFIRMATION EMAIL
+// ============================================================================
+
+async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
+  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+  if (!SENDGRID_API_KEY || !data.email) return false;
+
+  const firstName = data.name ? data.name.split(' ')[0] : 'there';
+
+  const projectLabels = {
+    'tub-to-shower': 'Tub-to-Shower Conversion',
+    'full-bathroom': 'Full Bathroom Remodel',
+    'cosmetic': 'Cosmetic Refresh'
+  };
+  const projectLabel = projectLabels[data.projectType] || 'Bathroom Remodel';
+
+  const discountDeadline = new Date();
+  discountDeadline.setDate(discountDeadline.getDate() + 7);
+  const deadlineStr = discountDeadline.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f4; }
+    .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; }
+    .header { background: #19412c; padding: 32px 40px; text-align: center; }
+    .header h1 { color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p { color: rgba(255,255,255,0.65); margin: 6px 0 0; font-size: 14px; }
+    .body { padding: 40px; }
+    .estimate-hero { background: #19412c; border-radius: 12px; padding: 28px; text-align: center; margin-bottom: 28px; }
+    .estimate-hero .label { color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .estimate-hero .price { color: #ffffff; font-size: 36px; font-weight: 700; letter-spacing: -0.5px; }
+    .estimate-hero .sub { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 6px; }
+    .equity-box { background: #f8f9f4; border-left: 3px solid #e9af3b; border-radius: 8px; padding: 18px 20px; margin-bottom: 28px; }
+    .equity-box .title { font-size: 12px; font-weight: 700; color: #19412c; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .equity-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; color: #444; }
+    .equity-row.net { font-weight: 700; color: #19412c; border-top: 1px solid #e0e0e0; margin-top: 8px; padding-top: 10px; }
+    .equity-row.net .val { color: #e9af3b; font-size: 18px; }
+    .section-title { font-size: 16px; font-weight: 700; color: #19412c; margin: 0 0 12px; }
+    p { font-size: 15px; color: #444; line-height: 1.7; margin: 0 0 16px; }
+    .discount-box { background: #fff8e8; border: 1px solid #e9af3b; border-radius: 10px; padding: 20px 24px; margin: 28px 0; text-align: center; }
+    .discount-box .amount { font-size: 26px; font-weight: 700; color: #19412c; }
+    .discount-box .desc { font-size: 14px; color: #666; margin-top: 4px; }
+    .discount-box .expires { font-size: 12px; color: #999; margin-top: 6px; }
+    .cta { display: block; background: #19412c; color: #ffffff !important; text-decoration: none; text-align: center; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 700; margin: 24px 0; }
+    .footer { background: #f4f4f4; padding: 24px 40px; text-align: center; font-size: 12px; color: #999; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>Timberline Build Co</h1>
+      <p>Licensed General Contractor · Orange County, CA</p>
+    </div>
+    <div class="body">
+      <p>Hey ${firstName},</p>
+      <p>Your <strong>${projectLabel}</strong> estimate is ready. Here's what we put together based on your selections:</p>
+
+      <div class="estimate-hero">
+        <div class="label">Your Estimated Investment</div>
+        <div class="price">$${lowEstimate.toLocaleString()} – $${highEstimate.toLocaleString()}</div>
+        <div class="sub">Preliminary range · confirmed after site visit</div>
+      </div>
+
+      <div class="equity-box">
+        <div class="title">📈 Your Equity Impact — OC Market</div>
+        <div class="equity-row"><span>Your Investment</span><span>~$${Math.round((lowEstimate + highEstimate) / 2).toLocaleString()}</span></div>
+        <div class="equity-row"><span>Est. Home Value Increase</span><span>+$${Math.round((lowEstimate + highEstimate) / 2 * 1.38).toLocaleString()}</span></div>
+        <div class="equity-row net"><span>Net Equity Gain</span><span class="val">+$${Math.round((lowEstimate + highEstimate) / 2 * 0.38).toLocaleString()}</span></div>
+      </div>
+
+      <p>We know you have options in Orange County. What sets us apart is simple: quality work, honest pricing, and we actually show up when we say we will.</p>
+
+      <div class="discount-box">
+        <div class="amount">Save $1,500</div>
+        <div class="desc">Schedule your free measure before ${deadlineStr}</div>
+        <div class="expires">We'll come out, take a look, and confirm your exact price — no pressure.</div>
+      </div>
+
+      <a href="tel:+19492291692" class="cta">Call (949) 229-1692 to Schedule</a>
+
+      <p style="font-size: 13px; color: #888;">Or just reply to this email and we'll get something set up. Either way, the site visit is completely free.</p>
+
+      <p>Talk soon,<br><strong>Justin Sherman</strong><br>Timberline Build Co<br>(949) 229-1692</p>
+    </div>
+    <div class="footer">
+      <p>Timberline Build Co · Orange County, CA · Licensed &amp; Insured<br>
+      You're receiving this because you requested an estimate at estimate.timberlinebuild.co</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: data.email, name: data.name || undefined }] }],
+        from: { email: 'justin@timberlinebuild.co', name: 'Justin @ Timberline Build Co' },
+        reply_to: { email: 'justin@timberlinebuild.co', name: 'Justin Sherman' },
+        subject: `Your ${projectLabel} Estimate — $${lowEstimate.toLocaleString()}–$${highEstimate.toLocaleString()}`,
+        content: [{ type: 'text/html', value: html }]
+      })
+    });
+
+    if (response.ok) {
+      console.log('Customer confirmation email sent to:', data.email);
+      return true;
+    } else {
+      const err = await response.text();
+      console.error('Customer email error:', err);
+      return false;
+    }
+  } catch (error) {
+    console.error('Customer email failed:', error);
+    return false;
+  }
+}
+
+// ============================================================================
+// SENDGRID CONTACT LIST ENROLLMENT (for drip campaign)
+// ============================================================================
+
+async function enrollInSendGridDrip(data, lowEstimate, highEstimate) {
+  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+  const SENDGRID_LIST_ID = process.env.SENDGRID_DRIP_LIST_ID; // Set this in Vercel env vars
+  if (!SENDGRID_API_KEY || !data.email) return false;
+
+  const projectLabels = {
+    'tub-to-shower': 'Tub-to-Shower Conversion',
+    'full-bathroom': 'Full Bathroom Remodel',
+    'cosmetic': 'Cosmetic Refresh'
+  };
+
+  try {
+    const contactPayload = {
+      contacts: [{
+        email: data.email,
+        first_name: data.name ? data.name.split(' ')[0] : '',
+        last_name: data.name ? data.name.split(' ').slice(1).join(' ') : '',
+        phone_number: data.phone || '',
+        postal_code: data.zip || '',
+        custom_fields: {
+          // These map to custom fields you create in SendGrid
+          // Create them at: Marketing → Contacts → Custom Fields
+          e1_T: projectLabels[data.projectType] || data.projectType,  // project_type (text)
+          e2_N: Math.round((lowEstimate + highEstimate) / 2),          // estimate_midpoint (number)
+        }
+      }],
+      ...(SENDGRID_LIST_ID ? { list_ids: [SENDGRID_LIST_ID] } : {})
+    };
+
+    const response = await fetch('https://api.sendgrid.com/v3/marketing/contacts', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(contactPayload)
+    });
+
+    if (response.ok) {
+      console.log('Contact enrolled in SendGrid drip list:', data.email);
+      return true;
+    } else {
+      const err = await response.text();
+      console.error('SendGrid contact enrollment error:', err);
+      return false;
+    }
+  } catch (error) {
+    console.error('SendGrid enrollment failed:', error);
+    return false;
+  }
+}
+
+// ============================================================================
 // ESTIMATE CALCULATION
 // ============================================================================
 
@@ -753,14 +937,21 @@ export default async function handler(req, res) {
       estimateId = estResult;
       pipelineId = pipeResult;
       
-      // Send email notification (non-blocking)
-      emailSent = await sendLeadNotification(data, lowEstimate, highEstimate, imageAnalysis, contactId);
-      
+      // Send all emails + enroll in drip in parallel
+      const [justinEmail, customerEmail, dripEnrolled] = await Promise.all([
+        sendLeadNotification(data, lowEstimate, highEstimate, imageAnalysis, contactId),
+        sendCustomerConfirmation(data, lowEstimate, highEstimate),
+        enrollInSendGridDrip(data, lowEstimate, highEstimate)
+      ]);
+      emailSent = justinEmail;
+
       console.log('CRM Integration:', {
         contactId,
         estimateId,
         pipelineId,
-        emailSent,
+        justinEmailSent: justinEmail,
+        customerEmailSent: customerEmail,
+        dripEnrolled,
         imageUrl: imageUrl || 'NOT_UPLOADED',
         imageUploadError: imageUploadError || null,
         timestamp: new Date().toISOString()

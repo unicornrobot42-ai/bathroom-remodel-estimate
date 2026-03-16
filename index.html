@@ -2405,6 +2405,12 @@
                 <input type="tel" id="leadPhone" name="phone" required placeholder="(949) 555-1234" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-field optional">
+                <label for="leadZip" style="color: rgba(255,255,255,0.7);">ZIP Code</label>
+                <input type="text" id="leadZip" name="zip" placeholder="92651" maxlength="10" inputmode="numeric" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;">
+              </div>
+            </div>
             <p class="form-note" style="color: rgba(255,255,255,0.5);">
               <span class="icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2438,16 +2444,16 @@
               <p class="success-subtitle">Based on your selections, here's your personalized investment range.</p>
             </div>
             
+            <!-- Investment — always the focal point -->
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 0.5rem;">Your Estimated Investment</div>
+              <div id="finalPrice" style="font-family: 'Playfair Display', serif; font-size: clamp(2.5rem, 8vw, 3.75rem); font-weight: 700; color: #fff; letter-spacing: -0.02em; line-height: 1;">$18,500 – $28,000</div>
+              <div style="font-size: 0.82rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem;">Preliminary range · confirmed after site visit</div>
+            </div>
+
             <div class="estimate-card">
-              <div class="estimate-card-header">
-                <div>
-                  <div class="estimate-label">Your Estimated Investment</div>
-                  <div class="estimate-value" id="finalPrice">$18,500 – $28,000</div>
-                </div>
-              </div>
-              
               <!-- Equity Impact Card -->
-              <div class="equity-card" id="equityCard">
+              <div class="equity-card" id="equityCard" style="margin: 0 0 1.5rem 0;">
                 <div class="equity-card-title">📈 Your Equity Impact — OC Market</div>
                 <div class="equity-rows">
                   <div class="equity-row">
@@ -2864,7 +2870,8 @@
           image: state.imageBase64,
           email: document.getElementById('leadEmail').value.trim(),
           phone: document.getElementById('leadPhone').value.trim(),
-          name: document.getElementById('leadName').value.trim() || null
+          name: document.getElementById('leadName').value.trim() || null,
+          zip: document.getElementById('leadZip').value.trim() || null
         };
         
         try {
@@ -3149,6 +3156,7 @@
         document.getElementById('leadName').value = '';
         document.getElementById('leadEmail').value = '';
         document.getElementById('leadPhone').value = '';
+        document.getElementById('leadZip').value = '';
         sqftSlider.value = 80;
         sqftValue.textContent = '80';
         clearImage();
