@@ -572,7 +572,7 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
     <!-- Header -->
     <div class="header">
       <div class="header-inner">
-        <div class="brand">Timberline <span>Build Co</span></div>
+        <img src="https://estimate.timberlinebuild.co/timberline-logo.png" alt="Timberline Build Co" style="height:48px; width:auto; filter:brightness(0) invert(1);">
         <div class="header-meta">Licensed GC · Orange County, CA<br>${dateStr}</div>
       </div>
     </div>
