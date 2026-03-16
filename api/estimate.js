@@ -450,17 +450,54 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
   if (!SENDGRID_API_KEY || !data.email) return false;
 
   const firstName = data.name ? data.name.split(' ')[0] : 'there';
+  const midpoint = Math.round((lowEstimate + highEstimate) / 2);
 
   const projectLabels = {
     'tub-to-shower': 'Tub-to-Shower Conversion',
     'full-bathroom': 'Full Bathroom Remodel',
     'cosmetic': 'Cosmetic Refresh'
   };
-  const projectLabel = projectLabels[data.projectType] || 'Bathroom Remodel';
+  const conditionLabels = {
+    'pull-refresh': 'Same layout, updated finishes',
+    'full-redesign': 'Layout change / full redesign',
+    'cosmetic': 'Cosmetic updates only'
+  };
+  const flooringLabels = {
+    'tile': 'Tile',
+    'vinyl': 'Luxury Vinyl (LVP)',
+    'keep-as-is': 'Keep existing flooring',
+    'other': 'Other'
+  };
+  const fixtureLabels = {
+    'low': 'Budget / Builder-grade',
+    'mid': 'Mid-range',
+    'high': 'Premium / Designer'
+  };
+  const plumbingLabels = {
+    'keep': 'Keep existing layout',
+    'minor': 'Minor adjustments',
+    'major': 'Significant relocation'
+  };
+  const glassLabels = {
+    'frameless': 'Frameless glass enclosure',
+    'curtain': 'Shower curtain / rod'
+  };
+
+  const projectLabel   = projectLabels[data.projectType]   || 'Bathroom Remodel';
+  const conditionLabel = conditionLabels[data.condition]   || data.condition;
+  const flooringLabel  = flooringLabels[data.flooring]     || data.flooring;
+  const fixtureLabel   = fixtureLabels[data.fixtureQuality] || data.fixtureQuality;
+  const plumbingLabel  = plumbingLabels[data.plumbing]     || data.plumbing;
+  const glassLabel     = glassLabels[data.glass]           || data.glass;
+
+  // Equity math — use mid-range multiplier (1.38x)
+  const valueAdd = Math.round(midpoint * 1.38);
+  const netGain  = valueAdd - midpoint;
 
   const discountDeadline = new Date();
   discountDeadline.setDate(discountDeadline.getDate() + 7);
   const deadlineStr = discountDeadline.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   const html = `
 <!DOCTYPE html>
@@ -469,72 +506,171 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f4; }
-    .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; }
-    .header { background: #19412c; padding: 32px 40px; text-align: center; }
-    .header h1 { color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
-    .header p { color: rgba(255,255,255,0.65); margin: 6px 0 0; font-size: 14px; }
-    .body { padding: 40px; }
-    .estimate-hero { background: #19412c; border-radius: 12px; padding: 28px; text-align: center; margin-bottom: 28px; }
-    .estimate-hero .label { color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
-    .estimate-hero .price { color: #ffffff; font-size: 36px; font-weight: 700; letter-spacing: -0.5px; }
-    .estimate-hero .sub { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 6px; }
-    .equity-box { background: #f8f9f4; border-left: 3px solid #e9af3b; border-radius: 8px; padding: 18px 20px; margin-bottom: 28px; }
-    .equity-box .title { font-size: 12px; font-weight: 700; color: #19412c; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
-    .equity-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; color: #444; }
-    .equity-row.net { font-weight: 700; color: #19412c; border-top: 1px solid #e0e0e0; margin-top: 8px; padding-top: 10px; }
-    .equity-row.net .val { color: #e9af3b; font-size: 18px; }
-    .section-title { font-size: 16px; font-weight: 700; color: #19412c; margin: 0 0 12px; }
-    p { font-size: 15px; color: #444; line-height: 1.7; margin: 0 0 16px; }
-    .discount-box { background: #fff8e8; border: 1px solid #e9af3b; border-radius: 10px; padding: 20px 24px; margin: 28px 0; text-align: center; }
-    .discount-box .amount { font-size: 26px; font-weight: 700; color: #19412c; }
-    .discount-box .desc { font-size: 14px; color: #666; margin-top: 4px; }
-    .discount-box .expires { font-size: 12px; color: #999; margin-top: 6px; }
-    .cta { display: block; background: #19412c; color: #ffffff !important; text-decoration: none; text-align: center; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: 700; margin: 24px 0; }
-    .footer { background: #f4f4f4; padding: 24px 40px; text-align: center; font-size: 12px; color: #999; line-height: 1.6; }
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0ede8; color: #1a1a1a; }
+    .wrapper { max-width: 620px; margin: 0 auto; background: #ffffff; }
+
+    /* Header */
+    .header { background: #19412c; padding: 28px 40px; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; }
+    .brand { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+    .brand span { color: #e9af3b; }
+    .header-meta { color: rgba(255,255,255,0.5); font-size: 12px; text-align: right; }
+
+    /* Hero price */
+    .price-hero { background: linear-gradient(135deg, #19412c 0%, #1f5237 100%); padding: 40px; text-align: center; border-bottom: 3px solid #e9af3b; }
+    .price-label { color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
+    .price-range { color: #ffffff; font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1; margin-bottom: 8px; }
+    .price-sub { color: rgba(255,255,255,0.45); font-size: 13px; }
+    .price-project { color: #e9af3b; font-size: 15px; font-weight: 600; margin-top: 10px; }
+
+    /* Body */
+    .body { padding: 36px 40px; }
+    p { font-size: 15px; color: #444; line-height: 1.75; margin: 0 0 20px; }
+
+    /* Scope summary */
+    .scope-card { border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; margin-bottom: 28px; }
+    .scope-header { background: #f8f6f2; padding: 12px 18px; font-size: 11px; font-weight: 700; color: #19412c; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #e8e8e8; }
+    .scope-row { display: flex; justify-content: space-between; padding: 11px 18px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    .scope-row:last-child { border-bottom: none; }
+    .scope-key { color: #888; }
+    .scope-val { color: #1a1a1a; font-weight: 600; text-align: right; max-width: 60%; }
+
+    /* Equity card */
+    .equity-card { background: #19412c; border-radius: 10px; padding: 24px; margin-bottom: 28px; }
+    .equity-title { color: #e9af3b; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; }
+    .equity-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 14px; }
+    .equity-row-label { color: rgba(255,255,255,0.65); }
+    .equity-row-val { color: #ffffff; font-weight: 700; }
+    .equity-divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 10px 0; }
+    .equity-net { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; }
+    .equity-net-label { color: #ffffff; font-size: 15px; font-weight: 700; }
+    .equity-net-val { color: #e9af3b; font-size: 22px; font-weight: 800; }
+    .equity-footnote { color: rgba(255,255,255,0.35); font-size: 11px; margin-top: 14px; line-height: 1.5; }
+
+    /* Discount */
+    .discount-box { background: #fffbf0; border: 1px solid #e9af3b; border-radius: 10px; padding: 22px 28px; margin-bottom: 28px; text-align: center; }
+    .discount-amount { font-size: 28px; font-weight: 800; color: #19412c; }
+    .discount-desc { font-size: 14px; color: #555; margin-top: 4px; }
+    .discount-expires { font-size: 12px; color: #999; margin-top: 6px; }
+
+    /* CTA */
+    .cta-block { text-align: center; margin-bottom: 28px; }
+    .cta-btn { display: inline-block; background: #19412c; color: #ffffff !important; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+    .cta-or { font-size: 13px; color: #aaa; margin-top: 12px; }
+
+    /* Sig */
+    .sig { border-top: 1px solid #eee; padding-top: 20px; font-size: 14px; color: #555; line-height: 1.7; }
+    .sig strong { color: #19412c; }
+
+    /* Footer */
+    .footer { background: #f0ede8; padding: 20px 40px; text-align: center; font-size: 11px; color: #aaa; line-height: 1.7; }
   </style>
 </head>
 <body>
   <div class="wrapper">
+
+    <!-- Header -->
     <div class="header">
-      <h1>Timberline Build Co</h1>
-      <p>Licensed General Contractor · Orange County, CA</p>
+      <div class="header-inner">
+        <div class="brand">Timberline <span>Build Co</span></div>
+        <div class="header-meta">Licensed GC · Orange County, CA<br>${dateStr}</div>
+      </div>
     </div>
+
+    <!-- Price Hero -->
+    <div class="price-hero">
+      <div class="price-label">Your Estimated Investment</div>
+      <div class="price-range">$${lowEstimate.toLocaleString()} – $${highEstimate.toLocaleString()}</div>
+      <div class="price-sub">Preliminary estimate · confirmed after free site visit</div>
+      <div class="price-project">${projectLabel}</div>
+    </div>
+
+    <!-- Body -->
     <div class="body">
-      <p>Hey ${firstName},</p>
-      <p>Your <strong>${projectLabel}</strong> estimate is ready. Here's what we put together based on your selections:</p>
+      <p>Hey ${firstName} — here's your complete estimate. Save this email. It has everything you need to refer back to, share with a spouse, or compare against other bids.</p>
 
-      <div class="estimate-hero">
-        <div class="label">Your Estimated Investment</div>
-        <div class="price">$${lowEstimate.toLocaleString()} – $${highEstimate.toLocaleString()}</div>
-        <div class="sub">Preliminary range · confirmed after site visit</div>
+      <!-- Scope Summary -->
+      <div class="scope-card">
+        <div class="scope-header">Your Project Selections</div>
+        <div class="scope-row">
+          <span class="scope-key">Project Type</span>
+          <span class="scope-val">${projectLabel}</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Scope</span>
+          <span class="scope-val">${conditionLabel}</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Approx. Size</span>
+          <span class="scope-val">${data.squareFootage} sq ft</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Flooring</span>
+          <span class="scope-val">${flooringLabel}</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Fixture Quality</span>
+          <span class="scope-val">${fixtureLabel}</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Plumbing</span>
+          <span class="scope-val">${plumbingLabel}</span>
+        </div>
+        <div class="scope-row">
+          <span class="scope-key">Shower Enclosure</span>
+          <span class="scope-val">${glassLabel}</span>
+        </div>
+        ${data.zip ? `<div class="scope-row"><span class="scope-key">ZIP Code</span><span class="scope-val">${data.zip}</span></div>` : ''}
       </div>
 
-      <div class="equity-box">
-        <div class="title">📈 Your Equity Impact — OC Market</div>
-        <div class="equity-row"><span>Your Investment</span><span>~$${Math.round((lowEstimate + highEstimate) / 2).toLocaleString()}</span></div>
-        <div class="equity-row"><span>Est. Home Value Increase</span><span>+$${Math.round((lowEstimate + highEstimate) / 2 * 1.38).toLocaleString()}</span></div>
-        <div class="equity-row net"><span>Net Equity Gain</span><span class="val">+$${Math.round((lowEstimate + highEstimate) / 2 * 0.38).toLocaleString()}</span></div>
+      <!-- Equity Impact -->
+      <div class="equity-card">
+        <div class="equity-title">📈 Your Equity Impact — OC Market</div>
+        <div class="equity-row">
+          <span class="equity-row-label">Your Investment</span>
+          <span class="equity-row-val">~$${midpoint.toLocaleString()}</span>
+        </div>
+        <div class="equity-row">
+          <span class="equity-row-label">Est. Home Value Increase</span>
+          <span class="equity-row-val">+$${valueAdd.toLocaleString()}</span>
+        </div>
+        <hr class="equity-divider">
+        <div class="equity-net">
+          <span class="equity-net-label">Net Equity Gain</span>
+          <span class="equity-net-val">+$${netGain.toLocaleString()}</span>
+        </div>
+        <p class="equity-footnote">Based on OC resale data. Bathroom remodels in Orange County typically return 130–145% of investment at sale. Actual returns vary by neighborhood, finishes, and market conditions.</p>
       </div>
 
-      <p>We know you have options in Orange County. What sets us apart is simple: quality work, honest pricing, and we actually show up when we say we will.</p>
-
+      <!-- Discount -->
       <div class="discount-box">
-        <div class="amount">Save $1,500</div>
-        <div class="desc">Schedule your free measure before ${deadlineStr}</div>
-        <div class="expires">We'll come out, take a look, and confirm your exact price — no pressure.</div>
+        <div class="discount-amount">Save $1,500</div>
+        <div class="discount-desc">Schedule your free measure &amp; site visit before ${deadlineStr}</div>
+        <div class="discount-expires">No pressure — we come out, confirm the scope, and give you an exact number.</div>
       </div>
 
-      <a href="tel:+19492291692" class="cta">Call (949) 229-1692 to Schedule</a>
+      <!-- CTA -->
+      <div class="cta-block">
+        <a href="tel:+19492291692" class="cta-btn">📞 Call (949) 229-1692</a>
+        <div class="cta-or">Or just reply to this email — we'll get something on the calendar.</div>
+      </div>
 
-      <p style="font-size: 13px; color: #888;">Or just reply to this email and we'll get something set up. Either way, the site visit is completely free.</p>
-
-      <p>Talk soon,<br><strong>Justin Sherman</strong><br>Timberline Build Co<br>(949) 229-1692</p>
+      <!-- Signature -->
+      <div class="sig">
+        <p>Talk soon,<br>
+        <strong>Justin Sherman</strong><br>
+        Timberline Build Co<br>
+        (949) 229-1692 · justin@timberlinebuild.co<br>
+        Licensed &amp; Insured · Orange County, CA</p>
+      </div>
     </div>
+
+    <!-- Footer -->
     <div class="footer">
-      <p>Timberline Build Co · Orange County, CA · Licensed &amp; Insured<br>
-      You're receiving this because you requested an estimate at estimate.timberlinebuild.co</p>
+      <p>You're receiving this because you requested an estimate at <strong>estimate.timberlinebuild.co</strong><br>
+      Timberline Build Co · Orange County, CA · Licensed &amp; Insured</p>
     </div>
+
   </div>
 </body>
 </html>`;
@@ -550,7 +686,7 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
         personalizations: [{ to: [{ email: data.email, name: data.name || undefined }] }],
         from: { email: 'justin@timberlinebuild.co', name: 'Justin @ Timberline Build Co' },
         reply_to: { email: 'justin@timberlinebuild.co', name: 'Justin Sherman' },
-        subject: `Your ${projectLabel} Estimate — $${lowEstimate.toLocaleString()}–$${highEstimate.toLocaleString()}`,
+        subject: `Your ${projectLabel} Estimate — $${lowEstimate.toLocaleString()}–$${highEstimate.toLocaleString()} · Timberline Build Co`,
         content: [{ type: 'text/html', value: html }]
       })
     });
