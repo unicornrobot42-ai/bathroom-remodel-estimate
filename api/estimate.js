@@ -709,9 +709,27 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
 // SENDGRID CONTACT LIST ENROLLMENT (for drip campaign)
 // ============================================================================
 
+// Fetches SendGrid custom field definitions and returns a name→id map
+async function getSendGridFieldIds(apiKey) {
+  try {
+    const res = await fetch('https://api.sendgrid.com/v3/marketing/field_definitions', {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+    const json = await res.json();
+    const map = {};
+    // Custom fields live in json.custom
+    (json.custom || []).forEach(f => { map[f.name] = f.id; });
+    console.log('SendGrid custom fields:', map);
+    return map;
+  } catch (e) {
+    console.error('Failed to fetch SendGrid field definitions:', e);
+    return {};
+  }
+}
+
 async function enrollInSendGridDrip(data, lowEstimate, highEstimate) {
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-  const SENDGRID_LIST_ID = process.env.SENDGRID_DRIP_LIST_ID; // Set this in Vercel env vars
+  const SENDGRID_LIST_ID = process.env.SENDGRID_DRIP_LIST_ID;
   if (!SENDGRID_API_KEY || !data.email) return false;
 
   const projectLabels = {
@@ -720,20 +738,31 @@ async function enrollInSendGridDrip(data, lowEstimate, highEstimate) {
     'cosmetic': 'Cosmetic Refresh'
   };
 
+  const discountDeadline = new Date();
+  discountDeadline.setDate(discountDeadline.getDate() + 7);
+  const deadlineStr = discountDeadline.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const estimateRange = `$${lowEstimate.toLocaleString()}–$${highEstimate.toLocaleString()}`;
+  const projectLabel  = projectLabels[data.projectType] || data.projectType;
+
   try {
+    // Dynamically look up field IDs so we never hardcode them
+    const fieldIds = await getSendGridFieldIds(SENDGRID_API_KEY);
+
+    // Build custom_fields object using live IDs
+    const customFields = {};
+    if (fieldIds['estimate_range'])   customFields[fieldIds['estimate_range']]  = estimateRange;
+    if (fieldIds['project_type'])     customFields[fieldIds['project_type']]    = projectLabel;
+    if (fieldIds['discount_expires']) customFields[fieldIds['discount_expires']]= deadlineStr;
+
     const contactPayload = {
       contacts: [{
-        email: data.email,
-        first_name: data.name ? data.name.split(' ')[0] : '',
-        last_name: data.name ? data.name.split(' ').slice(1).join(' ') : '',
+        email:        data.email,
+        first_name:   data.name ? data.name.split(' ')[0] : '',
+        last_name:    data.name ? data.name.split(' ').slice(1).join(' ') : '',
         phone_number: data.phone || '',
-        postal_code: data.zip || '',
-        custom_fields: {
-          // These map to custom fields you create in SendGrid
-          // Create them at: Marketing → Contacts → Custom Fields
-          e1_T: projectLabels[data.projectType] || data.projectType,  // project_type (text)
-          e2_N: Math.round((lowEstimate + highEstimate) / 2),          // estimate_midpoint (number)
-        }
+        postal_code:  data.zip   || '',
+        custom_fields: customFields
       }],
       ...(SENDGRID_LIST_ID ? { list_ids: [SENDGRID_LIST_ID] } : {})
     };
@@ -748,11 +777,11 @@ async function enrollInSendGridDrip(data, lowEstimate, highEstimate) {
     });
 
     if (response.ok) {
-      console.log('Contact enrolled in SendGrid drip list:', data.email);
+      console.log('Contact enrolled in SendGrid drip:', data.email, { estimateRange, projectLabel });
       return true;
     } else {
       const err = await response.text();
-      console.error('SendGrid contact enrollment error:', err);
+      console.error('SendGrid enrollment error:', err);
       return false;
     }
   } catch (error) {
