@@ -2801,6 +2801,10 @@
             s.classList.add('active');
           }
         });
+
+        // Always scroll to top of modal when switching screens
+        var formMain = document.querySelector('.form-main');
+        if (formMain) formMain.scrollTop = 0;
         
         // Progress
         if (n <= totalScreens) {
