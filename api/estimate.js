@@ -38,62 +38,77 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-// Pricing configuration - Based on Justin's actual project budgets
+// Pricing configuration - OC Market Client Rates (2025-2026)
+// These are CUSTOMER-FACING prices based on Orange County market rates.
+// Timberline is priced at or slightly below comparable OC GCs to win on value.
 const PRICING = {
-  // Base cost by project type
-  base: {
-    'tub-to-shower': 5414,
-    'full-bathroom': 14000,
-    'cosmetic': 8000
+
+  // ─── TUB-TO-SHOWER CONVERSION ───────────────────────────────────────────────
+  // Scope: demo existing tub, hot mop, tile labor, tile material, new fixtures,
+  // shower glass, plumbing reconnect, patch drywall, paint.
+  // OC market range: $12k–$25k depending on finish level.
+  tubToShower: {
+    low:  12000,   // Basic tile, curtain rod, budget fixtures
+    mid:  17000,   // Mid-range tile, frameless glass, decent fixtures
+    high: 24000    // Designer tile, premium frameless glass, high-end fixtures
   },
-  
-  // Tier ranges (for displaying to customer)
-  // Full bathroom ranges now account for size
-  ranges: {
-    'tub-to-shower': { low: [8614, 9514], mid: [9514, 10614], high: [10614, 12000] },
-    'full-bathroom': { 
-      // Size-based ranges
-      small: { low: [15000, 20000], mid: [18000, 25000], high: [22000, 32000] },   // 40-90 sqft
-      standard: { low: [20000, 27000], mid: [24000, 35000], high: [30000, 45000] }, // 90-130 sqft
-      large: { low: [25000, 35000], mid: [30000, 45000], high: [40000, 60000] }    // 130+ sqft
+
+  // ─── FULL BATHROOM REMODEL ──────────────────────────────────────────────────
+  // Scope: full gut, new tile/flooring, vanity, toilet, fixtures, shower/tub,
+  // drywall, paint, electrical, plumbing.
+  // OC market: $25k–$60k. Timberline sweet spot: $28k–$55k.
+  // Rate per sq ft by quality tier (all-in client price):
+  fullBath: {
+    perSqFt: {
+      low:  195,   // ~$150/sqft labor + materials; standard finishes
+      mid:  265,   // ~$200/sqft; mid-range tile, custom vanity, frameless glass
+      high: 360    // ~$275/sqft; designer tile, premium fixtures, luxury finishes
     },
-    'cosmetic': { low: [4000, 6000], mid: [6000, 10000], high: [10000, 15000] }
+    // Minimum floors prevent absurdly low estimates on small baths
+    minimums: {
+      low:  22000,
+      mid:  30000,
+      high: 42000
+    }
   },
-  
+
+  // ─── COSMETIC REFRESH ───────────────────────────────────────────────────────
+  // Scope: paint, new fixtures/hardware, vanity swap, flooring (no tile demo),
+  // lighting. No major demo or tile work.
+  cosmetic: {
+    low:  8500,   // Paint, basic fixture swap
+    mid:  13500,  // New vanity, flooring, fixture upgrade
+    high: 20000   // Full cosmetic: vanity, flooring, lighting, all fixtures
+  },
+
+  // ─── ADD-ONS (on top of base) ───────────────────────────────────────────────
+
+  // Layout change / full redesign adds complexity
   condition: {
-    'pull-refresh': 1000,
-    'full-redesign': 3000,
-    'cosmetic': -1000
+    'pull-refresh':  0,       // Standard replacement in same footprint
+    'full-redesign': 5500,    // Moving walls, relocating plumbing, layout change
+    'cosmetic':      0
   },
-  
-  tile: {
-    'low': 700,
-    'mid': 1200,
-    'high': 2000
-  },
-  
+
+  // Flooring (only applied when NOT already a full-bath — avoids double-counting)
   flooring: {
-    'tile': 35,
-    'vinyl': 12,
-    'keep-as-is': 0,
-    'other': 20
+    'tile':       42,   // $/sqft installed (porcelain/ceramic, standard OC rate)
+    'vinyl':      15,   // $/sqft LVP installed
+    'keep-as-is':  0,
+    'other':      25
   },
-  
-  fixtures: {
-    'low': 500,
-    'mid': 1000,
-    'high': 2000
-  },
-  
+
+  // Shower glass enclosure
   glass: {
-    'frameless': 2500,
-    'curtain': 0
+    'frameless': 3500,   // Semi-frameless included in mid/high tub-to-shower base; this covers upgrades
+    'curtain':      0
   },
-  
+
+  // Plumbing work beyond standard reconnect
   plumbing: {
-    'keep': 0,
-    'minor': 500,
-    'major': 3500
+    'keep':   0,
+    'minor':  900,    // Valve replacement, minor re-route
+    'major':  5500    // Full repipe, significant re-route, moving drain
   }
 };
 
@@ -426,43 +441,75 @@ async function sendLeadNotification(data, lowEstimate, highEstimate, imageAnalys
 
 function calculateBaseEstimate(data) {
   const { projectType, condition, flooring, fixtureQuality, plumbing, glass, squareFootage } = data;
-  
-  let basePrice = PRICING.base[projectType] || PRICING.base['tub-to-shower'];
-  
-  let sizeFactor = 1;
-  if (squareFootage <= 60) {
-    sizeFactor = 0.95;
-  } else if (squareFootage >= 150) {
-    sizeFactor = 1.10;
-  } else if (squareFootage >= 120) {
-    sizeFactor = 1.08;
-  } else if (squareFootage >= 100) {
-    sizeFactor = 1.04;
+  const sqft = parseInt(squareFootage) || 80;
+  const tier = fixtureQuality || 'mid'; // 'low' | 'mid' | 'high'
+
+  let basePrice = 0;
+  const breakdown = { base: 0, flooring: 0, glass: 0, plumbing: 0, conditionUpgrade: 0 };
+
+  // ── Base price by project type ──────────────────────────────────────────────
+  if (projectType === 'tub-to-shower') {
+    // Flat rate by quality tier; size has minimal impact on this scope
+    basePrice = PRICING.tubToShower[tier] || PRICING.tubToShower.mid;
+
+    // Small sqft bump for larger conversion footprints (>= 50 sqft)
+    if (sqft >= 50) basePrice = Math.round(basePrice * 1.05);
+
+    breakdown.base = basePrice;
+
+    // Full bath already includes flooring; tub-to-shower adds it separately
+    const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * sqft);
+    breakdown.flooring = flooringCost;
+
+  } else if (projectType === 'full-bathroom') {
+    // Per-sqft pricing — most accurate for full gut/remodel
+    const rate = PRICING.fullBath.perSqFt[tier] || PRICING.fullBath.perSqFt.mid;
+    const minimum = PRICING.fullBath.minimums[tier] || PRICING.fullBath.minimums.mid;
+    basePrice = Math.max(Math.round(rate * sqft), minimum);
+    breakdown.base = basePrice;
+    // Flooring is included in per-sqft rate for full bath — no double-count
+
+  } else if (projectType === 'cosmetic') {
+    basePrice = PRICING.cosmetic[tier] || PRICING.cosmetic.mid;
+    breakdown.base = basePrice;
+
+    // Cosmetic jobs: flooring is additive (they may want new LVP but no tile)
+    const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * sqft);
+    breakdown.flooring = flooringCost;
+
+  } else {
+    // Fallback
+    basePrice = PRICING.cosmetic.mid;
+    breakdown.base = basePrice;
   }
-  
-  basePrice = Math.round(basePrice * sizeFactor);
-  
+
+  // ── Add-ons ─────────────────────────────────────────────────────────────────
+
+  // Layout / full redesign upcharge
   const conditionCost = PRICING.condition[condition] || 0;
-  const tileCost = PRICING.tile[fixtureQuality] || PRICING.tile.mid;
-  const flooringCost = Math.round((PRICING.flooring[flooring] || 0) * squareFootage);
-  const fixtureCost = PRICING.fixtures[fixtureQuality] || PRICING.fixtures.mid;
-  const glassCost = PRICING.glass[glass] || 0;
+  breakdown.conditionUpgrade = conditionCost;
+
+  // Shower glass — only meaningful if NOT already in tub-to-shower mid/high base
+  // For tub-to-shower, frameless glass is already in mid/high pricing; only add for 'low' tier
+  let glassCost = 0;
+  if (projectType === 'tub-to-shower' && tier === 'low') {
+    glassCost = PRICING.glass[glass] || 0;
+  } else if (projectType !== 'tub-to-shower') {
+    glassCost = PRICING.glass[glass] || 0;
+  }
+  breakdown.glass = glassCost;
+
+  // Plumbing work
   const plumbingCost = PRICING.plumbing[plumbing] || 0;
-  
-  const breakdown = {
-    base: basePrice + conditionCost,
-    tile: tileCost,
-    flooring: flooringCost,
-    fixtures: fixtureCost,
-    glass: glassCost,
-    plumbing: plumbingCost
-  };
-  
-  const total = breakdown.base + breakdown.tile + breakdown.flooring + breakdown.fixtures + breakdown.glass + breakdown.plumbing;
-  
-  const lowEstimate = Math.round(total * 0.95);
-  const highEstimate = Math.round(total * 1.15);
-  
+  breakdown.plumbing = plumbingCost;
+
+  // ── Total & range ────────────────────────────────────────────────────────────
+  const total = breakdown.base + breakdown.flooring + breakdown.conditionUpgrade + breakdown.glass + breakdown.plumbing;
+
+  // OC market range: +/- 10% captures normal scope variation
+  const lowEstimate  = Math.round(total * 0.90);
+  const highEstimate = Math.round(total * 1.10);
+
   return { lowEstimate, highEstimate, breakdown };
 }
 
@@ -514,7 +561,14 @@ async function analyzeImage(imageBase64, formData) {
     console.warn('HEIC magic byte check failed:', error.message);
   }
   
-  const prompt = `You are a bathroom remodeling expert analyzing a customer's bathroom photo for a remodel estimate.
+  const prompt = `You are an expert bathroom remodeling estimator for a licensed General Contractor in Orange County, California (2025–2026 market).
+
+OC MARKET CONTEXT — use these as your pricing anchors:
+- Tub-to-shower conversion: $12,000–$25,000 (basic to premium finish)
+- Full bathroom remodel: $25,000–$60,000 depending on size and quality tier
+- Cosmetic refresh (no demo/tile): $8,500–$20,000
+- Per-sqft all-in rate: $150–$360/sqft depending on scope and finish
+These are CUSTOMER-FACING prices for a quality OC contractor. Do NOT anchor to national averages, which run 30–40% lower than OC.
 
 The customer has provided the following project details:
 - Project Type: ${formData.projectType}
@@ -527,33 +581,34 @@ The customer has provided the following project details:
 
 Please analyze this bathroom photo and provide:
 
-1. SQUARE FOOTAGE ESTIMATE: Based on visual cues (fixtures, proportions, typical dimensions), estimate the actual square footage. Compare to the customer's estimate.
+1. SQUARE FOOTAGE ESTIMATE: Based on visual cues (fixtures, proportions, standard fixture sizes), estimate the actual square footage. OC master baths average 80–120 sqft; standard baths 45–70 sqft. Note if the customer's estimate seems off.
 
-2. COMPLEXITY ASSESSMENT: Rate the project complexity on a scale:
-   - "straightforward" - Standard layout, no obvious complications
-   - "moderate" - Some custom work needed
-   - "complex" - Significant custom work, unusual layout, or challenging conditions
+2. COMPLEXITY ASSESSMENT:
+   - "straightforward" — standard layout, no obvious hidden surprises
+   - "moderate" — unusual tile pattern, niche work, second-floor plumbing stack, older home quirks
+   - "complex" — layout change needed, significant plumbing relocation, water damage visible, very small or awkward space requiring custom work
 
-3. KEY OBSERVATIONS: Note relevant details like:
-   - Current tile/flooring condition
-   - Fixture age and condition
-   - Visible plumbing concerns
-   - Layout considerations
-   - Any potential challenges
+3. KEY OBSERVATIONS relevant to the estimate:
+   - Tile condition and coverage area
+   - Fixture age (newer = easier; 1980s–90s = more surprises)
+   - Visible plumbing concerns (supply lines, drain location)
+   - Shower pan / hot mop needs
+   - Anything that would push cost up OR down from the baseline
 
-4. PRICE ADJUSTMENT: Suggest a percentage adjustment to the base estimate:
-   - Negative (down to -10%): If the space is simpler than typical
-   - Zero: If standard complexity
-   - Positive (up to +15%): If more complex than typical
+4. PRICE ADJUSTMENT: Suggest a percentage adjustment to the calculated base estimate.
+   - Range: -10% to +20%
+   - Only go negative if the space is clearly simpler than a typical OC bathroom
+   - Go positive if complexity, size discrepancy, or visible conditions warrant it
+   - A 0% adjustment means the photo confirms the form inputs are accurate
 
 Respond in this exact JSON format:
 {
   "estimatedSqFt": number,
-  "sqFtDifference": "string describing difference from customer estimate",
+  "sqFtDifference": "string describing difference from customer estimate, e.g. 'Your bathroom looks closer to 65 sqft than the 50 sqft you entered — we adjusted the estimate accordingly.'",
   "complexity": "straightforward" | "moderate" | "complex",
   "observations": ["observation 1", "observation 2", ...],
   "priceAdjustment": number (percentage, e.g., 5 for +5%, -10 for -10%),
-  "summary": "A 1-2 sentence summary for the customer about their bathroom and what we observed"
+  "summary": "A 1–2 sentence summary for the customer: what you see, what that means for the project. Be direct and professional — no fluff."
 }`;
 
   try {
