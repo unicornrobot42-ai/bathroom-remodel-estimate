@@ -2804,7 +2804,12 @@
 
         // Always scroll to top of modal when switching screens
         var formMain = document.querySelector('.form-main');
-        if (formMain) formMain.scrollTop = 0;
+        if (formMain) {
+          formMain.scrollTop = 0;
+          // Also defer scroll in case content renders after screen switch
+          setTimeout(function() { formMain.scrollTop = 0; }, 50);
+          setTimeout(function() { formMain.scrollTop = 0; }, 300);
+        }
         
         // Progress
         if (n <= totalScreens) {

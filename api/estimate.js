@@ -510,11 +510,8 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
     .wrapper { max-width: 620px; margin: 0 auto; background: #ffffff; }
 
     /* Header */
-    .header { background: #19412c; padding: 28px 40px; }
-    .header-inner { display: flex; justify-content: space-between; align-items: center; }
-    .brand { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
-    .brand span { color: #e9af3b; }
-    .header-meta { color: rgba(255,255,255,0.5); font-size: 12px; text-align: right; }
+    .header { background: #19412c; padding: 20px 32px; }
+    .header-meta { color: rgba(255,255,255,0.45); font-size: 11px; text-align: right; line-height: 1.6; }
 
     /* Hero price */
     .price-hero { background: linear-gradient(135deg, #19412c 0%, #1f5237 100%); padding: 40px; text-align: center; border-bottom: 3px solid #e9af3b; }
@@ -571,10 +568,16 @@ async function sendCustomerConfirmation(data, lowEstimate, highEstimate) {
 
     <!-- Header -->
     <div class="header">
-      <div class="header-inner">
-        <img src="https://estimate.timberlinebuild.co/timberline-logo.png" alt="Timberline Build Co" style="height:48px; width:auto; filter:brightness(0) invert(1);">
-        <div class="header-meta">Licensed GC · Orange County, CA<br>${dateStr}</div>
-      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td width="160" valign="middle">
+            <img src="https://estimate.timberlinebuild.co/timberline-logo.png" alt="Timberline Build Co" width="130" height="54" style="display:block; border:0; filter:brightness(0) invert(1);">
+          </td>
+          <td valign="middle" align="right" class="header-meta">
+            Licensed GC &amp; Insured<br>Orange County, CA &nbsp;·&nbsp; ${dateStr}
+          </td>
+        </tr>
+      </table>
     </div>
 
     <!-- Price Hero -->
