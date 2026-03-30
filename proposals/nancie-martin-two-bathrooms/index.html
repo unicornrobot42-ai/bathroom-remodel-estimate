@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nancie Martin | Two Bathroom Remodel | Timberline Build Co.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #19412c;
+            --brown: #614432;
+            --dark-brown: #312509;
+            --navy: #213245;
+            --gold: #e9af3b;
+            --light-gold: #fdf5e0;
+            --off-white: #f9f9f9;
+            --text: #2a2a2a;
+            --text-light: #666;
+            --border: #e8e8e8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text);
+            background: #fff;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 { font-weight: 700; line-height: 1.2; letter-spacing: -0.5px; }
+        h2 { font-size: 2rem; }
+        h3 { font-size: 1.2rem; }
+        p { margin-bottom: 1rem; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate { animation: fadeInUp 0.7s ease-out both; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2.5rem; }
+        section { padding: 5rem 0; }
+        section:nth-child(even) { background: var(--off-white); }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, var(--green) 0%, #0f2817 100%);
+            color: #fff;
+            padding: 7rem 0 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -8%;
+            width: 500px; height: 500px;
+            background: rgba(233,175,59,0.06);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 6px;
+            background: linear-gradient(90deg, var(--gold), var(--brown));
+        }
+        .header-content { position: relative; z-index: 2; }
+        .logo-section { margin-bottom: 2.5rem; }
+        .logo-img { height: 65px; margin-bottom: 0.5rem; object-fit: contain; }
+        .brand-tagline {
+            font-size: 0.8rem; font-weight: 600; letter-spacing: 3px;
+            text-transform: uppercase; opacity: 0.7;
+        }
+        .project-title {
+            font-size: 3.5rem; font-weight: 800; letter-spacing: -1.5px;
+            margin-bottom: 0.5rem;
+        }
+        .project-address { font-size: 1.1rem; font-weight: 400; opacity: 0.85; margin-bottom: 3rem; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.09);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid var(--gold);
+        }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--gold); display: block; }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.75; }
+
+        /* SECTION LABEL */
+        .section-label {
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--gold);
+            margin-bottom: 1rem; display: block;
+        }
+        .section-title { color: var(--green); margin-bottom: 1.5rem; }
+
+        /* OVERVIEW */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        @media (max-width: 768px) {
+            .overview-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .project-title { font-size: 2.4rem; }
+        }
+        .overview-img {
+            width: 100%;
+            border-radius: 12px;
+            object-fit: cover;
+            height: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        /* ZONE SECTIONS */
+        .zone-header {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .zone-number {
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem;
+        }
+        .zone-title { font-size: 1.8rem; color: var(--green); }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+        @media (max-width: 768px) { .zone-grid { grid-template-columns: 1fr; } }
+
+        .scope-list { list-style: none; }
+        .scope-list li {
+            padding: 0.9rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .scope-list li:last-child { border-bottom: none; }
+        .scope-list li span {
+            font-size: 0.8rem; color: var(--text-light); font-weight: 400;
+        }
+        .scope-list li::before {
+            content: '✓';
+            color: var(--gold);
+            margin-right: 0.5rem;
+        }
+
+        .materials-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .materials-title {
+            background: var(--green);
+            color: #fff;
+            padding: 1rem 1.2rem;
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .material-item {
+            padding: 0.85rem 1.2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .material-item:last-child { border-bottom: none; }
+        .mat-name { font-weight: 600; font-size: 0.85rem; }
+        .mat-detail { font-size: 0.8rem; color: var(--text-light); text-align: right; max-width: 55%; }
+        .mat-detail.allowance-tag {
+            background: var(--light-gold); color: var(--brown);
+            padding: 0.2rem 0.6rem; border-radius: 4px;
+            font-weight: 700; font-size: 0.7rem;
+        }
+        .mat-detail.excluded-tag {
+            background: #f0f0f0; color: #888;
+            padding: 0.2rem 0.6rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+
+        /* ALLOWANCE CALLOUT BOX */
+        .allowance-box {
+            background: var(--light-gold);
+            border: 1px solid rgba(233,175,59,0.4);
+            border-left: 4px solid var(--gold);
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .allowance-box h4 {
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--brown); margin-bottom: 0.5rem;
+        }
+        .allowance-box p { font-size: 0.9rem; margin: 0; color: var(--dark-brown); }
+
+        /* NOT INCLUDED */
+        .not-included-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .not-included-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+        .not-included-card .x-icon {
+            color: #c0392b; font-weight: 800; font-size: 0.9rem; margin-right: 0.4rem;
+        }
+        .not-included-card h4 { font-size: 0.95rem; display: inline; }
+        .not-included-card p { font-size: 0.82rem; color: var(--text-light); margin-top: 0.5rem; margin-bottom: 0; }
+
+        /* RENDER */
+        .render-img {
+            width: 100%; border-radius: 12px; object-fit: cover;
+            height: 450px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+        }
+
+        /* TIMELINE */
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        .timeline-item {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            position: relative;
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute; top: 50%; right: -0.75rem;
+            width: 0; height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 8px solid var(--gold);
+            transform: translateY(-50%);
+        }
+        .timeline-item:last-child::after { display: none; }
+        .timeline-week {
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem;
+        }
+        .timeline-task { font-size: 0.9rem; font-weight: 700; color: var(--green); }
+        .timeline-desc { font-size: 0.78rem; color: var(--text-light); margin-top: 0.25rem; }
+
+        /* FINANCIAL */
+        .total-box {
+            background: var(--green);
+            color: #fff;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(25,65,44,0.25);
+        }
+        .total-label {
+            font-size: 0.8rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; opacity: 0.75; margin-bottom: 1rem;
+        }
+        .total-amount {
+            font-size: 4rem; font-weight: 800; color: var(--gold);
+            letter-spacing: -2px; line-height: 1;
+        }
+        .total-note {
+            font-size: 0.85rem; opacity: 0.7; margin-top: 1rem;
+        }
+
+        .savings-badge {
+            background: var(--gold);
+            color: var(--dark-brown);
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-top: 1rem;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+            margin-top: 2rem;
+        }
+        .breakdown-table th {
+            background: var(--green); color: #fff;
+            padding: 1rem 1.5rem; text-align: left;
+            font-size: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase;
+        }
+        .breakdown-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .breakdown-table tr:last-child td { border-bottom: none; }
+        .breakdown-table .amount { font-weight: 700; color: var(--green); text-align: right; white-space: nowrap; }
+        .breakdown-table .discount { color: #27ae60; }
+        .breakdown-table .total-row { background: var(--light-gold); font-weight: 700; }
+
+        /* PAYMENT */
+        .payment-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        @media (max-width: 600px) { .payment-grid { grid-template-columns: 1fr; } }
+        .payment-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .payment-pct {
+            font-size: 2.5rem; font-weight: 800; color: var(--green); display: block;
+        }
+        .payment-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold); margin-bottom: 0.5rem; }
+        .payment-desc { font-size: 0.85rem; color: var(--text-light); margin: 0; }
+
+        /* FOOTER */
+        footer {
+            background: var(--dark-brown);
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            padding: 3rem 0;
+        }
+        footer p { margin-bottom: 0.3rem; font-size: 0.85rem; }
+        footer strong { color: #fff; }
+        footer .footer-divider {
+            width: 60px; height: 3px;
+            background: var(--gold);
+            margin: 1rem auto;
+            border-radius: 2px;
+        }
+
+        @media print {
+            header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .animate { opacity: 1 !important; animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <div class="container">
+        <div class="header-content animate">
+            <div class="logo-section">
+                <img src="./logo.png" alt="Timberline Build Co." class="logo-img" onerror="this.style.display='none'">
+                <p class="brand-tagline">Timberline Build Co. &nbsp;·&nbsp; Orange County, CA</p>
+            </div>
+            <h1 class="project-title">Nancie Martin</h1>
+            <p class="project-address">Two Bathroom Remodel &nbsp;·&nbsp; 2717 Via Bandita, San Clemente, CA &nbsp;·&nbsp; March 2026</p>
+
+            <div class="stats-grid animate delay-2">
+                <div class="stat-card">
+                    <span class="stat-val">$39,521</span>
+                    <span class="stat-label">Bundle Investment</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-val">10% Off</span>
+                    <span class="stat-label">Multi-Bathroom Discount</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-val">4–6 Weeks</span>
+                    <span class="stat-label">Est. Timeline</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-val">1 Year</span>
+                    <span class="stat-label">Labor Warranty</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- OVERVIEW -->
+<section>
+    <div class="container">
+        <div class="overview-grid">
+            <div class="animate">
+                <span class="section-label">Project Overview</span>
+                <h2 class="section-title">Two Complete Bathroom Transformations</h2>
+                <p>We're doing full remodels of both the master bathroom and guest bathroom at 2717 Via Bandita. Both bathrooms include new walk-in showers with frameless glass, new vanities, and heated floors (optional).</p>
+                <p>The scope includes toilet and shower relocation in both bathrooms — breaking foundation, trenching, and moving drain/supply lines up to 5 feet. A pocket door will be installed in the guest bathroom.</p>
+                <p><strong>Because you're doing both bathrooms together, we're offering a 10% bundle discount</strong> — saving you over $4,300 off the individual pricing.</p>
+                <p style="margin-bottom: 0;">Customer provides all finishes: tile, grout, vanity, sinks, faucets, toilet, towel bars, TP holder, and mirrors. This estimate is valid for 30 days.</p>
+            </div>
+            <div class="animate delay-2">
+                <img src="./render-master-bath.png" alt="Master Bathroom Concept" class="overview-img">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MASTER BATHROOM -->
+<section>
+    <div class="container">
+        <div class="zone-header animate">
+            <div class="zone-number">Bathroom 01</div>
+            <h2 class="zone-title">Master Bathroom — Full Remodel</h2>
+        </div>
+
+        <div style="margin-bottom: 2.5rem;">
+            <img src="./render-master-bath.png" alt="Master Bathroom Render" class="render-img animate delay-1">
+        </div>
+
+        <div class="zone-grid">
+            <div class="animate delay-1">
+                <h3 style="margin-bottom: 1rem;">Scope of Work</h3>
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">Complete transformation of the master bathroom including toilet and shower relocation with foundation work, approx. 48" walk-in shower with frameless hinged glass, and semi-custom double vanity. Final shower dimensions to be confirmed with elevations.</p>
+                <ul class="scope-list">
+                    <li>Demo — shower, toilet, vanity <span>Strip-out as needed; debris hauled off-site</span></li>
+                    <li>Toilet + Shower relocation (up to 5 ft) <span>Break foundation, trench, move drain/supply lines, patch concrete</span></li>
+                    <li>Plumbing — angle stops, valve, 2 faucets, set toilet <span>All rough and finish plumbing</span></li>
+                    <li>Walk-in shower (approx. 48") <span>Block shower pan, hot mop waterproofing. Final size TBD with elevations.</span></li>
+                    <li>Frameless hinged shower glass — 2 sides <span>Hardware finish TBD</span></li>
+                    <li>Tile shower floor + walls <span>Labor + setting material; customer supplies tile</span></li>
+                    <li>Tile bathroom floor <span>Labor + setting material</span></li>
+                    <li>Tile 2 full walls <span>Feature walls; labor + setting material</span></li>
+                    <li>Drywall prep/finish — 2 walls <span>Smooth, paint-ready finish</span></li>
+                    <li>Paint <span>All drywall surfaces</span></li>
+                    <li>Semi-custom vanity install <span>Cabinet install + stone fabricate/install + sink/faucet set</span></li>
+                    <li>Finish work <span>Towel bars, TP holder, mirror (customer supplies)</span></li>
+                    <li>Vent fan <span>Material + labor, flat rate</span></li>
+                    <li>Electrical — outlets/covers <span>Including outlet near toilet for bidet</span></li>
+                </ul>
+            </div>
+            <div class="animate delay-2">
+                <div class="materials-card">
+                    <div class="materials-title">Master Bath Investment</div>
+                    <div class="material-item">
+                        <span class="mat-name">Subtotal (before discount)</span>
+                        <span class="mat-detail" style="font-weight: 700;">$25,476</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Walk-in Shower (approx. 48")</span>
+                        <span class="mat-detail">Frameless glass</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Toilet/Shower Relocation</span>
+                        <span class="mat-detail">Foundation work</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Tile Work</span>
+                        <span class="mat-detail">Shower + floor + 2 walls</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Semi-Custom Vanity</span>
+                        <span class="mat-detail">Install + stone fab</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">All Tile/Grout/Fixtures</span>
+                        <span class="mat-detail excluded-tag">Owner Provides</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- GUEST BATHROOM -->
+<section>
+    <div class="container">
+        <div class="zone-header animate">
+            <div class="zone-number">Bathroom 02</div>
+            <h2 class="zone-title">Guest Bathroom — Full Remodel</h2>
+        </div>
+
+        <div style="margin-bottom: 2.5rem;">
+            <img src="./render-guest-bath.png" alt="Guest Bathroom Render" class="render-img animate delay-1">
+        </div>
+
+        <div class="zone-grid">
+            <div class="animate delay-1">
+                <h3 style="margin-bottom: 1rem;">Scope of Work</h3>
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">Complete guest bathroom remodel including toilet and shower relocation, walk-in shower with frameless glass, pre-fab vanity, and new pocket door installation.</p>
+                <ul class="scope-list">
+                    <li>Demo — shower, toilet, vanity <span>Strip-out as needed</span></li>
+                    <li>Toilet + Shower relocation (up to 5 ft) <span>Break foundation, trench, move drain/supply lines, patch concrete</span></li>
+                    <li>Plumbing — angle stops, valve, set toilet, faucet <span>All rough and finish plumbing</span></li>
+                    <li>Walk-in shower <span>Block shower pan with niche, hot mop waterproofing</span></li>
+                    <li>Frameless hinged shower glass <span>Hardware finish TBD</span></li>
+                    <li>Tile shower floor + walls <span>Shower area only; labor + setting material</span></li>
+                    <li>Tile bathroom floor <span>Labor + setting material</span></li>
+                    <li>Pre-fab vanity install <span>Set and install</span></li>
+                    <li>Install pocket door <span>New pocket door and frame</span></li>
+                    <li>Finish work <span>Towel bars, TP holder, mirror (customer supplies)</span></li>
+                    <li>Vent fan <span>Material + labor, flat rate</span></li>
+                    <li>Electrical — outlets/covers <span>All switches and outlets</span></li>
+                </ul>
+            </div>
+            <div class="animate delay-2">
+                <div class="materials-card">
+                    <div class="materials-title">Guest Bath Investment</div>
+                    <div class="material-item">
+                        <span class="mat-name">Subtotal (before discount)</span>
+                        <span class="mat-detail" style="font-weight: 700;">$18,436</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Walk-in Shower</span>
+                        <span class="mat-detail">Frameless glass</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Toilet/Shower Relocation</span>
+                        <span class="mat-detail">Foundation work</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Pocket Door</span>
+                        <span class="mat-detail allowance-tag">Included</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Pre-fab Vanity Install</span>
+                        <span class="mat-detail">Set + connect</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">All Tile/Grout/Fixtures</span>
+                        <span class="mat-detail excluded-tag">Owner Provides</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- OPTIONAL UPGRADES -->
+<section>
+    <div class="container">
+        <span class="section-label animate">Optional</span>
+        <h2 class="section-title animate">Available Upgrade</h2>
+        <div class="zone-grid">
+            <div class="animate delay-1">
+                <h3 style="margin-bottom: 1rem;">Heated Floors — Master Bathroom</h3>
+                <p style="color: var(--text-light);">Electric radiant heat installed beneath the floor tile. Walk onto warm floors every morning. Includes thermostat, heating mat, and installation labor.</p>
+                <ul class="scope-list">
+                    <li>Electric heating element <span>Embedded in thin-set under tile</span></li>
+                    <li>Programmable thermostat <span>Wall-mounted, easy control</span></li>
+                    <li>Full master bathroom coverage <span>~100+ sq ft</span></li>
+                </ul>
+            </div>
+            <div class="animate delay-2">
+                <div class="materials-card">
+                    <div class="materials-title">Heated Floor Add-On</div>
+                    <div class="material-item">
+                        <span class="mat-name">Heated Floors — Master</span>
+                        <span class="mat-detail" style="font-weight: 700; color: var(--green);">+ $2,000</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Heating Element</span>
+                        <span class="mat-detail allowance-tag">Included</span>
+                    </div>
+                    <div class="material-item">
+                        <span class="mat-name">Thermostat</span>
+                        <span class="mat-detail allowance-tag">Included</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHAT'S NOT INCLUDED -->
+<section style="background: #fff8f0;">
+    <div class="container">
+        <span class="section-label animate">Exclusions</span>
+        <h2 class="section-title animate">What's NOT Included</h2>
+        <p class="animate delay-1" style="color: var(--text-light); margin-bottom: 2.5rem;">The following materials are explicitly outside this proposal and should be purchased by the homeowner. Any additions require a signed change order.</p>
+        <div class="not-included-grid">
+            <div class="not-included-card animate delay-1">
+                <span class="x-icon">✕</span><h4>Tile, Grout & Trim</h4>
+                <p>All tile, grout, and trim pieces for showers, floors, and walls. Setting materials (thin-set, backer board, RedGard) ARE included.</p>
+            </div>
+            <div class="not-included-card animate delay-2">
+                <span class="x-icon">✕</span><h4>Vanity Cabinets</h4>
+                <p>Master: semi-custom cabinets + stone slab. Guest: pre-fab vanity unit. Installation labor IS included.</p>
+            </div>
+            <div class="not-included-card animate delay-3">
+                <span class="x-icon">✕</span><h4>Toilets</h4>
+                <p>Both toilets are owner-supplied. Setting and connection labor IS included.</p>
+            </div>
+            <div class="not-included-card animate delay-4">
+                <span class="x-icon">✕</span><h4>Faucets & Fixtures</h4>
+                <p>Sink faucets, shower fixtures (valves, shower heads), and drain hardware. Installation IS included.</p>
+            </div>
+            <div class="not-included-card animate delay-1">
+                <span class="x-icon">✕</span><h4>Mirrors & Accessories</h4>
+                <p>Mirrors, towel bars, TP holders, robe hooks. Installation labor IS included.</p>
+            </div>
+            <div class="not-included-card animate delay-2">
+                <span class="x-icon">✕</span><h4>Permits</h4>
+                <p>Permit fees are not included. Budget approximately $1,000–$2,000 separately depending on city requirements.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TIMELINE -->
+<section style="background: var(--off-white);">
+    <div class="container">
+        <span class="section-label animate">Schedule</span>
+        <h2 class="section-title animate">Estimated Project Timeline</h2>
+        <p class="animate delay-1" style="color: var(--text-light); margin-bottom: 2.5rem;">4–6 weeks total for both bathrooms. Work can be sequenced to keep one bathroom usable during construction. All tile and fixtures must be on-site before installation begins.</p>
+
+        <div class="timeline-grid animate delay-2">
+            <div class="timeline-item">
+                <div class="timeline-week">Week 1</div>
+                <div class="timeline-task">Demo & Foundation</div>
+                <div class="timeline-desc">Strip-out both bathrooms, break foundation for relocations</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-week">Weeks 2–3</div>
+                <div class="timeline-task">Rough Work</div>
+                <div class="timeline-desc">Plumbing, electrical, waterproofing, pocket door framing</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-week">Weeks 3–4</div>
+                <div class="timeline-task">Tile Work</div>
+                <div class="timeline-desc">Shower walls, floors, feature walls</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-week">Weeks 5–6</div>
+                <div class="timeline-task">Fixtures & Close-Out</div>
+                <div class="timeline-desc">Vanities, glass, electrical, paint, final clean</div>
+            </div>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-light); margin-top: 1.5rem;">
+            * Timeline subject to material lead times (especially glass and custom stone) and permit processing.
+        </p>
+    </div>
+</section>
+
+<!-- INVESTMENT SUMMARY -->
+<section>
+    <div class="container">
+        <span class="section-label animate">Investment</span>
+        <h2 class="section-title animate" style="margin-bottom: 2.5rem;">Total Project Investment</h2>
+
+        <table class="breakdown-table animate delay-1">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Master Bathroom</strong><br><small>Full remodel with toilet/shower relocation, 48×48 shower, semi-custom vanity</small></td>
+                    <td class="amount">$25,476</td>
+                </tr>
+                <tr>
+                    <td><strong>Guest Bathroom</strong><br><small>Full remodel with toilet/shower relocation, pocket door, pre-fab vanity</small></td>
+                    <td class="amount">$18,436</td>
+                </tr>
+                <tr>
+                    <td><strong>Subtotal</strong></td>
+                    <td class="amount">$43,912</td>
+                </tr>
+                <tr>
+                    <td><strong>Multi-Bathroom Bundle Discount</strong><br><small>10% off when completing both bathrooms together</small></td>
+                    <td class="amount discount">− $4,391</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL — BOTH BATHROOMS</strong></td>
+                    <td class="amount" style="font-size: 1.2rem;">$39,521</td>
+                </tr>
+                <tr>
+                    <td><strong>Optional: Heated Floors (Master)</strong></td>
+                    <td class="amount">+ $2,000</td>
+                </tr>
+                <tr>
+                    <td><strong>TOTAL WITH HEATED FLOORS</strong></td>
+                    <td class="amount">$41,521</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="total-box animate delay-2" style="max-width: 500px; margin: 3rem auto 0;">
+            <div class="total-label">Bundle Price — Both Bathrooms</div>
+            <div class="total-amount">$39,521</div>
+            <div class="savings-badge">You Save $4,391</div>
+            <div class="total-note" style="margin-top: 1.5rem;">Includes all labor, setting materials, frameless glass, hot mop, vent fans. Does not include permits or owner-supplied finishes.</div>
+        </div>
+    </div>
+</section>
+
+<!-- PAYMENT TERMS -->
+<section style="background: var(--off-white);">
+    <div class="container">
+        <span class="section-label animate">Payment Terms</span>
+        <h2 class="section-title animate">How We Work</h2>
+        <p class="animate delay-1" style="color: var(--text-light); margin-bottom: 2.5rem;">Three milestone payments tied to project progress. No surprises.</p>
+
+        <div class="payment-grid animate delay-2">
+            <div class="payment-card">
+                <span class="payment-label">Day 1 of Construction</span>
+                <span class="payment-pct">30%</span>
+                <p class="payment-desc">Due on first day of construction. Covers mobilization, materials, and crew scheduling.</p>
+            </div>
+            <div class="payment-card">
+                <span class="payment-label">Midpoint</span>
+                <span class="payment-pct">40%</span>
+                <p class="payment-desc">Due when rough work is complete — demo done, plumbing in, foundation patched, waterproofing complete.</p>
+            </div>
+            <div class="payment-card">
+                <span class="payment-label">Completion</span>
+                <span class="payment-pct">30%</span>
+                <p class="payment-desc">Due at project completion. All work finished, site cleaned, and walkthrough complete.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WARRANTY & TERMS -->
+<section>
+    <div class="container">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;">
+            <div class="animate">
+                <span class="section-label">Warranty</span>
+                <h2 class="section-title">Our Guarantee</h2>
+                <p>Timberline Build Co. warrants all labor for <strong>1 year from project completion</strong>. Any defects in workmanship will be repaired at no charge.</p>
+                <p style="margin-bottom: 0;">Manufacturer warranties apply to all materials we supply (glass, vent fans, heated floor system if selected). Documentation provided at close-out.</p>
+            </div>
+            <div class="animate delay-2">
+                <span class="section-label">Terms</span>
+                <h2 class="section-title">Important Notes</h2>
+                <ul style="list-style: none;">
+                    <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">✓ All change orders require written approval before work begins</li>
+                    <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">✓ Estimate valid 30 days from issue date</li>
+                    <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">✓ All tile and fixtures must be on-site before installation begins</li>
+                    <li style="padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">✓ Hidden damage discovered during demo billed as change order</li>
+                    <li style="padding: 0.6rem 0; font-size: 0.9rem;">✓ Licensed &amp; Insured · Orange County, CA</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p><strong>Timberline Build Co.</strong></p>
+        <div class="footer-divider"></div>
+        <p>Licensed General Contractor &nbsp;·&nbsp; Orange County, CA</p>
+        <p>Justin Sherman &nbsp;·&nbsp; 949-229-1692 &nbsp;·&nbsp; timberlinebuild.co</p>
+        <p style="margin-top: 1.5rem; font-size: 0.75rem; opacity: 0.5;">© 2026 Timberline Build Co. All Rights Reserved. Estimate valid 30 days from issue date.</p>
+    </div>
+</footer>
+
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.animate').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+</script>
+</body>
+</html>
