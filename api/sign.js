@@ -1,129 +1,130 @@
-// Timberline Proposal Signature Endpoint
-// Writes signatures to Google Sheets via OAuth refresh token
+// Signature capture endpoint - uses Airtable
+// POST: record a signature
+// GET: list all signatures
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-const SHEET_ID = process.env.SHEET_ID || '14GhgBXiiA0th4SAGDmbBsOKJdYlqKjgJGpmsCuI7KvA';
+const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appDl3z8M1ZhVzv4k';
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
+const TABLE_NAME = 'Signatures';
 
-async function getAccessToken() {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      refresh_token: GOOGLE_REFRESH_TOKEN,
-      grant_type: 'refresh_token'
-    })
-  });
-  const data = await res.json();
-  if (!data.access_token) {
-    throw new Error('Failed to get access token: ' + JSON.stringify(data));
-  }
-  return data.access_token;
-}
-
-async function appendToSheet(accessToken, row) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:F:append?valueInputOption=RAW`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ values: [row] })
-    }
-  );
-  const data = await res.json();
-  if (data.error) {
-    throw new Error('Sheet append failed: ' + JSON.stringify(data.error));
-  }
-  return data;
-}
-
-async function readFromSheet(accessToken, proposal) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:F`,
-    { headers: { 'Authorization': `Bearer ${accessToken}` } }
-  );
-  const data = await res.json();
-  const rows = data.values || [];
-  for (let i = rows.length - 1; i >= 0; i--) {
-    if (rows[i][2] === proposal) {
-      return {
-        name: rows[i][0],
-        email: rows[i][1],
-        proposal: rows[i][2],
-        amount: rows[i][3],
-        signed_at: rows[i][4]
-      };
-    }
-  }
-  return null;
-}
-
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method === 'GET') {
-    const { proposal } = req.query;
-    if (!proposal) {
-      return res.status(400).json({ error: 'proposal parameter required' });
-    }
-    try {
-      const accessToken = await getAccessToken();
-      const signature = await readFromSheet(accessToken, proposal);
-      return res.status(200).json({ signed: !!signature, signature });
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  }
-
-  if (req.method === 'POST') {
-    const { name, email, proposal, amount, signed_at, user_agent } = req.body || {};
-    if (!name || !proposal) {
-      return res.status(400).json({ error: 'name and proposal required' });
-    }
-
-    const timestamp = signed_at || new Date().toLocaleString('en-US', {
-      timeZone: 'America/Los_Angeles',
-      dateStyle: 'long',
-      timeStyle: 'short'
+  // Check for Airtable token
+  if (!AIRTABLE_TOKEN) {
+    return res.status(500).json({ 
+      ok: false, 
+      error: 'AIRTABLE_TOKEN not configured' 
     });
+  }
 
-    const row = [
-      name,
-      email || '',
-      proposal,
-      amount || '',
-      timestamp,
-      user_agent || req.headers['user-agent'] || ''
-    ];
-
+  // GET - list signatures
+  if (req.method === 'GET') {
     try {
-      const accessToken = await getAccessToken();
-      const result = await appendToSheet(accessToken, row);
-      return res.status(200).json({
-        ok: true,
-        record: { name, email, proposal, amount, signed_at: timestamp }
+      const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(TABLE_NAME)}?sort%5B0%5D%5Bfield%5D=Signed%20At&sort%5B0%5D%5Bdirection%5D=desc`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_TOKEN}`
+        }
       });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        return res.status(500).json({ ok: false, error: `Airtable error: ${error}` });
+      }
+      
+      const data = await response.json();
+      const signatures = (data.records || []).map(r => ({
+        id: r.id,
+        name: r.fields['Name'] || '',
+        email: r.fields['Email'] || '',
+        proposal: r.fields['Proposal'] || '',
+        amount: r.fields['Amount'] || '',
+        signedAt: r.fields['Signed At'] || '',
+        userAgent: r.fields['User Agent'] || ''
+      }));
+      
+      return res.status(200).json({ ok: true, signatures });
     } catch (err) {
-      // Return error instead of silently succeeding
-      return res.status(500).json({
-        ok: false,
-        error: err.message,
-        record: { name, email, proposal, amount, signed_at: timestamp }
-      });
+      return res.status(500).json({ ok: false, error: err.message });
     }
   }
 
-  return res.status(405).json({ error: 'method not allowed' });
-}
+  // POST - record signature
+  if (req.method === 'POST') {
+    try {
+      const { name, email, proposal, amount } = req.body || {};
+      
+      if (!name || !email || !proposal) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Missing required fields: name, email, proposal' 
+        });
+      }
+
+      const signedAt = new Date().toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        dateStyle: 'long',
+        timeStyle: 'short'
+      });
+      
+      const userAgent = req.headers['user-agent'] || 'unknown';
+
+      const record = {
+        fields: {
+          'Name': name,
+          'Email': email,
+          'Proposal': proposal,
+          'Amount': amount || '',
+          'Signed At': signedAt,
+          'User Agent': userAgent
+        }
+      };
+
+      const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(record)
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        return res.status(500).json({ 
+          ok: false, 
+          error: `Airtable error: ${error}`,
+          record: { name, email, proposal, amount, signed_at: signedAt }
+        });
+      }
+
+      const result = await response.json();
+      
+      return res.status(200).json({ 
+        ok: true, 
+        record: {
+          id: result.id,
+          name,
+          email,
+          proposal,
+          amount,
+          signed_at: signedAt
+        }
+      });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
+  }
+
+  return res.status(405).json({ ok: false, error: 'Method not allowed' });
+};
