@@ -1,6 +1,5 @@
 // Timberline Proposal Signature Endpoint
 // Writes signatures to Google Sheets via OAuth refresh token
-// No secrets in frontend — all handled here
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -19,6 +18,9 @@ async function getAccessToken() {
     })
   });
   const data = await res.json();
+  if (!data.access_token) {
+    throw new Error('Failed to get access token: ' + JSON.stringify(data));
+  }
   return data.access_token;
 }
 
@@ -34,7 +36,11 @@ async function appendToSheet(accessToken, row) {
       body: JSON.stringify({ values: [row] })
     }
   );
-  return res.json();
+  const data = await res.json();
+  if (data.error) {
+    throw new Error('Sheet append failed: ' + JSON.stringify(data.error));
+  }
+  return data;
 }
 
 async function readFromSheet(accessToken, proposal) {
@@ -104,15 +110,16 @@ export default async function handler(req, res) {
 
     try {
       const accessToken = await getAccessToken();
-      await appendToSheet(accessToken, row);
+      const result = await appendToSheet(accessToken, row);
       return res.status(200).json({
         ok: true,
         record: { name, email, proposal, amount, signed_at: timestamp }
       });
     } catch (err) {
-      return res.status(200).json({
-        ok: true,
-        warning: err.message,
+      // Return error instead of silently succeeding
+      return res.status(500).json({
+        ok: false,
+        error: err.message,
         record: { name, email, proposal, amount, signed_at: timestamp }
       });
     }
@@ -120,4 +127,3 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'method not allowed' });
 }
-// Deployed Tue Apr 14 22:34:03 PDT 2026
